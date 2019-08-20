@@ -31,13 +31,8 @@
 //#define Load_Fonts
 const char szFontPath[MAX_PATH] = "c:\\Windows\\Fonts\\msyh.ttc";	//字体文件路径，最好还是绝对路径吧，也可以放到游戏目录下
 
-typedef HRESULT(_stdcall *Hook_DrawIndexedPrimitive)(LPDIRECT3DDEVICE9 pDevice,
-	D3DPRIMITIVETYPE Type,
-	INT BaseVertexIndex, 
-	UINT MinVertexIndex, 
-	UINT NumVertices, 
-	UINT startIndex, 
-	UINT primCount);
+typedef HRESULT(_stdcall *Hook_DrawIndexedPrimitive)(LPDIRECT3DDEVICE9 pDevice, D3DPRIMITIVETYPE Type,
+	INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount);
 typedef HRESULT(_stdcall *Hook_Reset)(LPDIRECT3DDEVICE9 pDevice,
 	D3DPRESENT_PARAMETERS* pPresentationParameters);
 typedef HRESULT(_stdcall *Hook_EndScene)(LPDIRECT3DDEVICE9 pDevice);
@@ -50,44 +45,33 @@ Hook_DrawIndexedPrimitive g_fnDrawIndexedPrimitive = nullptr;		//原始DrawIndexed
 Hook_Reset g_fnReset = nullptr;										//原始Reset函数地址
 Hook_EndScene g_fnEndScene = nullptr;								//原始EndScene函数地址				
 
-blackbone::Process g_cTargetProcess;								//当前游戏进程信息
-
+blackbone::Process g_cGameProcessInfo;								//当前游戏进程信息
 HMODULE g_hModule = NULL;											//当前DLL的module	
-HWND g_hTargetWindow = NULL;										//游戏窗口句柄
-WNDPROC g_fnOriProc = nullptr;										//原始窗口过程
+HWND g_hGameWindow = NULL;											//游戏窗口句柄
+WNDPROC g_fnOriginalProc = nullptr;									//原始窗口过程
 
 bool g_bCallOne = true;												//只调用一次代码标识
 bool g_bShowMenu = true;											//显示菜单
-bool g_bDrawTargetBox = false;										//绘制人物透视方框
+bool g_bDrawPlayerBox = false;										//绘制人物透视方框
 bool g_bPerspectiveDefenders = false;								//透视保卫者
 bool g_bPerspectiveSleeper = false;									//透视潜伏者
 
-int g_nMatrixOffset = 0x4CF86E4;									//矩阵偏移
+int g_nMatrixOffset = 0;											//矩阵偏移
 float g_fMatrix[4][4] = { 0.0f };									//矩阵
 uint64_t g_nMetrixBaseAddress = 0;									//矩阵基址
+
+int g_nTargetOffset = 0;											//敌人坐标偏移
+uint64_t g_nTargetBaseAddress = 0;									//敌人坐标基址
 
 std::list<UINT> g_cDefenders;										//保卫者3D模型
 std::list<UINT> g_cSleeper;											//潜伏者3D模型
 
-int g_nTargetOffset = 0xA61F84;										//敌人坐标偏移
-uint64_t g_nTargetBaseAddress = 0;									//敌人坐标基址
-
 
 //函数声明
-//
-HRESULT _stdcall MyDrawIndexedPrimitive(LPDIRECT3DDEVICE9 pDevice,
-	D3DPRIMITIVETYPE Type,
-	INT BaseVertexIndex,
-	UINT MinVertexIndex,
-	UINT NumVertices,
-	UINT startIndex,
-	UINT primCount);
-
-//
+HRESULT _stdcall MyDrawIndexedPrimitive(LPDIRECT3DDEVICE9 pDevice, D3DPRIMITIVETYPE Type,
+	INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount);
 HRESULT _stdcall MyReset(LPDIRECT3DDEVICE9 pDevice,
 	D3DPRESENT_PARAMETERS* pPresentationParameters);
-
-//
 HRESULT _stdcall MyEndScene(LPDIRECT3DDEVICE9 pDevice);
 
 //窗口过程
@@ -96,8 +80,8 @@ LRESULT CALLBACK ModifyProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 //初始化Hook
 void InitializeHook(void* pBuf);
 
-//退出
-void FreeDll();
+//释放全部东西
+void ReleaseAll();
 
 //创建一个调试控制台
 void CreateDebugConsole();
@@ -108,17 +92,17 @@ bool CheckTarget(HWND hWnd);
 //初始化ImGui
 void InitializeImGui();
 
-//Imgui相关绘制
+//Imgui相关绘制菜单
 void DrawMenu();
 
 //初始化游戏人物模型标识
-void InitPlayerVerBuferNumbers();
+void InitializePlayerVBNumbers();
 
 //绘制一个方框
 void DrawBox(int nPosX, int nPosY, int nWidth, int nHeight, D3DCOLOR dwColor, IDirect3DDevice9* pDevice);
 
-//初始化敌人信息
-void InitTargetInfo();
+//初始化游戏信息
+void InitializeGameInfo();
 
 //绘制人物透视方框
 void DrawPlayerBox(IDirect3DDevice9* pDevice);
@@ -138,16 +122,16 @@ BOOL WINAPI DllMain(
 		/********************************************************************************/
 		DisableThreadLibraryCalls(static_cast<HMODULE>(_DllHandle));
 		g_hModule = static_cast<HMODULE>(_DllHandle);
-		g_hTargetWindow = FindWindowA(0, szGameWindow);
-		if (g_hTargetWindow)
+		g_hGameWindow = FindWindowA(0, szGameWindow);
+		if (g_hGameWindow)
 		{
 			CreateDebugConsole();
 			_beginthread(InitializeHook, 0, 0);
 		}
 	}
-	else if (_Reason == DLL_PROCESS_DETACH)
+	if (_Reason == DLL_PROCESS_DETACH)
 	{
-		FreeDll();
+		ReleaseAll();
 	}
 	return TRUE;
 }
@@ -188,15 +172,15 @@ HRESULT _stdcall MyDrawIndexedPrimitive(LPDIRECT3DDEVICE9 pDevice,
 	}
 	if(bTargetModel)
 	{
-		pDevice->GetStreamSource(0, &pVertexBuffer, &nOffset, &nStride);
+		//pDevice->GetStreamSource(0, &pVertexBuffer, &nOffset, &nStride);
 		pDevice->SetRenderState(D3DRS_ZENABLE, false);
 		hRet = g_fnDrawIndexedPrimitive(pDevice, Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 	}
 	if (bTargetModel)
 	{
 		pDevice->SetRenderState(D3DRS_ZENABLE, true);
-		if (pVertexBuffer)
-			pVertexBuffer->Release();
+		//if (pVertexBuffer)
+		//	pVertexBuffer->Release();
 	}
 	hRet = g_fnDrawIndexedPrimitive(pDevice, Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 	return hRet;
@@ -217,17 +201,16 @@ HRESULT _stdcall MyEndScene(LPDIRECT3DDEVICE9 pDevice)
 	{
 		g_bCallOne = false;					//确保只调用一次这些函数
 		g_pDirect3DDevice = pDevice;		//如果没有这一句，Imgui界面将显示不出来
+		
+		g_fnOriginalProc = (WNDPROC)SetWindowLongPtrA(g_hGameWindow, GWLP_WNDPROC, (LONG)ModifyProc);	//替换窗口过程
+
+		InitializePlayerVBNumbers();		//初始化人物模型标识
+		InitializeGameInfo();				//初始化游戏信息
 		InitializeImGui();					//初始化ImGui
-		g_fnOriProc = (WNDPROC)SetWindowLongPtrA(g_hTargetWindow, GWLP_WNDPROC, (LONG)ModifyProc);	//替换窗口过程
-
-		//初始化人物模型标识
-		InitPlayerVerBuferNumbers();
-
-		InitTargetInfo();
 	}
 	
-	DrawPlayerBox(pDevice);
-	DrawMenu();								//绘制Imgui
+	DrawPlayerBox(pDevice);					//绘制人物方框
+	DrawMenu();								//绘制Imgui菜单
 
 	return g_fnEndScene(pDevice);
 }
@@ -245,12 +228,14 @@ LRESULT CALLBACK ModifyProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case VK_F12:
 			g_bShowMenu = !g_bShowMenu;
 			break;
+		case VK_F11:
+			g_bDrawPlayerBox = !g_bDrawPlayerBox;
+			break;
 		}
 	}
 
-	if (g_fnOriProc)
-		return CallWindowProcA(g_fnOriProc, hWnd, uMsg, wParam, lParam);
-
+	if (g_fnOriginalProc)
+		return CallWindowProcA(g_fnOriginalProc, hWnd, uMsg, wParam, lParam);
 	return 1;
 }
 
@@ -263,7 +248,7 @@ void InitializeHook(void* pBuf)
 
 	try
 	{
-		if (CheckTarget(g_hTargetWindow) == false)
+		if (CheckTarget(g_hGameWindow) == false)
 			RunTimeError("注入进程与目标进程不匹配");
 
 		g_pDirect3D = Direct3DCreate9(D3D_SDK_VERSION);
@@ -280,7 +265,7 @@ void InitializeHook(void* pBuf)
 		if (FAILED(g_pDirect3D->CreateDevice(
 			D3DADAPTER_DEFAULT,
 			D3DDEVTYPE_HAL,
-			g_hTargetWindow,
+			g_hGameWindow,
 			D3DCREATE_SOFTWARE_VERTEXPROCESSING,
 			&stPresent,
 			&g_pDirect3DDevice)))
@@ -304,12 +289,8 @@ void InitializeHook(void* pBuf)
 	}
 }
 
-void FreeDll()
+void ReleaseAll()
 {
-	ImGui_ImplDX9_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-
 	if (g_pDirect3D)
 	{
 		g_pDirect3D->Release();
@@ -320,6 +301,10 @@ void FreeDll()
 		g_pDirect3DDevice->Release();
 		g_pDirect3DDevice = nullptr;
 	}
+
+	ImGui_ImplDX9_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
@@ -354,13 +339,16 @@ void InitializeImGui()
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	ImGui::StyleColorsLight();
 
-	ImGui_ImplWin32_Init(g_hTargetWindow);
+	ImGui_ImplWin32_Init(g_hGameWindow);
 	ImGui_ImplDX9_Init(g_pDirect3DDevice);	//这里确保Device指针的正确性,惨痛教训害我调试是一个晚上！！！
 #ifdef Load_Fonts
 	ImFont* font = io.Fonts->AddFontFromFileTTF(szFontPath, 15.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
 	IM_ASSERT(font != NULL);
 #endif // Load_Fonts
 }
+
+int g_nTextX = 0;
+int g_nTextY = 0;
 
 void DrawMenu()
 {
@@ -374,7 +362,9 @@ void DrawMenu()
 		ImGui::Text(u8"我们不生产代码,我们只是代码的搬运工");
 		ImGui::Checkbox(u8"保卫者透视",&g_bPerspectiveDefenders);
 		ImGui::Checkbox(u8"潜伏者透视", &g_bPerspectiveSleeper);
-		ImGui::Checkbox(u8"绘制人物方框", &g_bDrawTargetBox);
+		ImGui::Checkbox(u8"绘制人物方框", &g_bDrawPlayerBox);
+		ImGui::SliderInt(u8"X:", &g_nTextX, -2000, 2000);
+		ImGui::SliderInt(u8"Y:", &g_nTextY, -2000, 2000);
 		ImGui::SliderFloat(u8"矩阵第一个数", &g_fMatrix[0][0], -20.0f, -20.0f);
 		ImGui::End();
 
@@ -384,7 +374,7 @@ void DrawMenu()
 	}
 }
 
-void InitPlayerVerBuferNumbers()
+void InitializePlayerVBNumbers()
 {
 	//保卫者和潜伏者的人物模型的VerBufferNumber
 	UINT nDefenderArray[] = { 140,1310,1383,1432,1761,1677,2052,2118,3763 };
@@ -419,15 +409,18 @@ void DrawBox(int nPosX, int nPosY, int nWidth, int nHeight, D3DCOLOR dwColor, ID
 	DrawBorder(nPosX, nPosY, nWidth, nHeight);
 }
 
-void InitTargetInfo()
+void InitializeGameInfo()
 {
 	try
 	{
-		if (!NT_SUCCESS(g_cTargetProcess.Attach(GetCurrentProcessId())))
+		if (!NT_SUCCESS(g_cGameProcessInfo.Attach(GetCurrentProcessId())))
 			throw std::runtime_error("获取进程信息失败");
 
-		blackbone::ProcessModules& cModule = g_cTargetProcess.modules();
-		blackbone::ProcessMemory& cMemory = g_cTargetProcess.memory();
+		g_nMatrixOffset = 0x4cf8814;// 0x4CF86E4;
+		g_nTargetOffset = 0xa61fd4;// 0xA61F84; a61fd4
+
+		blackbone::ProcessModules& cModule = g_cGameProcessInfo.modules();
+		blackbone::ProcessMemory& cMemory = g_cGameProcessInfo.memory();
 		g_nMetrixBaseAddress = cModule.GetModule(std::wstring(L"client_panorama.dll"))->baseAddress + g_nMatrixOffset;
 		g_nTargetBaseAddress = cModule.GetModule(std::wstring(L"server.dll"))->baseAddress + g_nTargetOffset;
 		cMemory.Protect(g_nMetrixBaseAddress, sizeof(g_fMatrix), PAGE_EXECUTE_READWRITE);
@@ -439,22 +432,42 @@ void InitTargetInfo()
 	}
 }
 
+
 void DrawPlayerBox(IDirect3DDevice9* pDevice)
 {
-	if (g_bDrawTargetBox)
+	auto GetHalfGameWindowSize = [pDevice](DWORD& dwWidth, DWORD& dwHeight) ->void
 	{
 		D3DVIEWPORT9 stView;
 		pDevice->GetViewport(&stView);
-		DWORD dwHalfWidth = stView.Width / 2;
-		DWORD dwHalfHeight = stView.Height / 2;
+		dwWidth = stView.Width / 2;
+		dwHeight = stView.Height / 2;
+	};
+	auto FloatIsEmpty = [](float fValue) ->bool
+	{
+		if (fValue >= 0.0f && fValue <= 1.0f)
+			return true;
+		return false;
+	};
+
+	if (g_bDrawPlayerBox)
+	{
+		DWORD dwHalfWidth = 0, dwHalfHeight = 0;
+		GetHalfGameWindowSize(dwHalfWidth, dwHalfHeight);
 
 		int nTargetIndex = 9;
 		float stTargetPos[90];
-		g_cTargetProcess.memory().Read(g_nTargetBaseAddress, sizeof(float) * 90, stTargetPos);
-		g_cTargetProcess.memory().Read(g_nMetrixBaseAddress, sizeof(g_fMatrix), &g_fMatrix);
+		g_cGameProcessInfo.memory().Read(g_nTargetBaseAddress, sizeof(float) * 90, stTargetPos);
+		g_cGameProcessInfo.memory().Read(g_nMetrixBaseAddress, sizeof(g_fMatrix), &g_fMatrix);
 
 		for (int i = 0; i <= 10; i++, nTargetIndex += 9)
 		{
+			std::cout << i << ": X=" << stTargetPos[nTargetIndex]
+				<< " Y=" << stTargetPos[nTargetIndex + 1]
+				<< " Z=" << stTargetPos[nTargetIndex + 2] << std::endl;
+
+			if(FloatIsEmpty(stTargetPos[nTargetIndex]) && FloatIsEmpty(stTargetPos[nTargetIndex+1]))
+				break;
+
 			if (stTargetPos[nTargetIndex + 2] > 300.0f)
 				continue;
 
@@ -491,7 +504,11 @@ void DrawPlayerBox(IDirect3DDevice9* pDevice)
 			DrawBox(fBoxX - ((fBoxY_W - fBoxY_H) / 4), fBoxY_H,
 				(fBoxY_W - fBoxY_H) / 2, (fBoxY_W - fBoxY_H),
 				D3DCOLOR_XRGB(0, 255, 0), pDevice);
+
+			g_nTextX = fBoxX;
+			g_nTextY = fBoxY_H;
+
+			/*mouse_event(MOUSEEVENTF_MOVE, fBoxX, fBoxY_H, 0, 0);*/
 		}
 	}
 }
-//0xA61F84

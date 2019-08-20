@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+Debug
+*.exe
+*.dll
+*.log
+*.idb
+*.pdb
+
+
+
