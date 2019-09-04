@@ -1,6 +1,0 @@
-﻿  DllMain.cpp
-c:\users\fyh\desktop\hook_d3d9\hook_d3d9\dllmain.cpp(507): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-c:\users\fyh\desktop\hook_d3d9\hook_d3d9\dllmain.cpp(506): warning C4244: “参数”: 从“float”转换到“int”，可能丢失数据
-c:\users\fyh\desktop\hook_d3d9\hook_d3d9\dllmain.cpp(510): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
-c:\users\fyh\desktop\hook_d3d9\hook_d3d9\dllmain.cpp(511): warning C4244: “=”: 从“float”转换到“int”，可能丢失数据
-  Hook_d3d9.vcxproj -> C:\Users\fyh\Desktop\Hook_d3d9\Debug\Hook_d3d9.dll
