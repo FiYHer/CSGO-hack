@@ -52,12 +52,6 @@ typedef struct _AiMBotInfo
 	}
 }AiMBotInfo;
 
-typedef struct _Firearm
-{
-	int nCount;
-	char szName[50];
-}Firearm;
-
 enum Direct3DDevice_Function		//IDirect3DDevice9类的函数索引
 {
 	F_TestCooperativeLevel = 3,
@@ -178,29 +172,6 @@ enum Direct3DDevice_Function		//IDirect3DDevice9类的函数索引
 	F_CreateQuery,
 };
 
-enum GameMap
-{
-	Map_HotCity = 0,			//炙热沙城2
-	Map_DesertMaze,				//荒漠迷城
-	Map_PurgatoryTown,			//炼狱小镇
-	Map_DeathBuilding,			//殒命大厦
-	Map_GubaoFighting,			//古堡激战
-	Map_DeadCity,				//死城之谜
-	Map_Zoo,					//动物园
-	Map_RubyWineTown,			//红宝石酒镇
-	Map_TangentCompany,			//坦根特公司
-	Map_CoastalCrisis,			//海滨危机
-	Map_TrainpParkingStation,	//列车停放站
-	Map_DeathAmusementPark,		//死亡游乐园
-	Map_NuclearCrisis,			//核子危机
-	Map_CanalWaterCity,			//运河水城
-	Map_OfficeBuilding,			//办公大楼
-	Map_MercenaryTrainingCamp,	//佣兵训练营
-	Map_Office,					//办公室
-	Map_ItalianTown,			//意大利小镇
-	Map_WarehouseAssault,		//仓库突击
-};
-
 //创建一个调试控制台
 void CreateDebugConsole();
 
@@ -232,16 +203,13 @@ void DrawImgui();
 LRESULT CALLBACK MyWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 //初始化游戏人物Stride
-void InitializeStride(GameMap eMap);
+void InitializeStride();
 
 //初始化数据基址
 void InitializeData();
 
-//初始化枪械数据
-void InitializeFirearm();
-
 //绘制方框
-void DrawBox(IDirect3DDevice9* pDirect3DDevice,D3DCOLOR dwColor,int x,int y,int w,int h);
+void DrawBox(IDirect3DDevice9* pDirect3DDevice, D3DCOLOR dwColor, int x, int y, int w, int h, int nBlood = 0);
 
 //绘制人物方框
 void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice);

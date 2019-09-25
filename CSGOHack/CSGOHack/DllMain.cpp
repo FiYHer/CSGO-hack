@@ -1,19 +1,4 @@
 
-/*
-  CSGO游戏自瞄透视辅助模块
-  请勿用代码做任何违法的事情
-
-  Copyright (C) 2019 FYH
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful
-
-*/
-
 #include "HackFrame.h"
 
 //初始化
@@ -30,8 +15,8 @@ BOOL WINAPI DllMain(
 	switch (_Reason)
 	{
 	case DLL_PROCESS_ATTACH:
-		DisableThreadLibraryCalls(static_cast<HMODULE>(_DllHandle));
 		HideModule(_DllHandle);
+		DisableThreadLibraryCalls(static_cast<HMODULE>(_DllHandle));
 		CreateDebugConsole();
 		_beginthread(Initialize, 0, NULL);
 		break;
