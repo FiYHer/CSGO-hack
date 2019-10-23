@@ -7,7 +7,7 @@ IDirect3D9* g_pGameDirect3D = nullptr;							//游戏里面的IDirect3D9
 IDirect3DDevice9* g_pGameDirect3DDevice = nullptr;				//游戏里面的IDirect3DDevice9
 
 Type_Reset g_fReset = nullptr;									//Reset
-Type_Present g_fPresent = nullptr;								//Present
+Type_Present g_fPresent = nullptr;						 		//Present
 Type_EndScene g_fEndScene = nullptr;							//EndScene
 Type_DrawIndexedPrimitive g_fDrawIndexedPrimitive = nullptr;	//DrawIndexedPrimitive
 
@@ -19,11 +19,16 @@ bool g_bShowImgui = true;										//显示imgui菜单
 bool g_bShowDefenders = false;									//显示保卫者
 bool g_bShowSleeper = false;									//显示潜伏者
 bool g_bDrawBox = false;										//显示人物方框
-bool g_bAiMBotDefenders = false;								//保卫自瞄
-bool g_bAiMBotSleepers = false;									//潜伏自瞄
+bool g_bAiMBot = false;											//开启自瞄
 bool g_bDistanceAimBot = false;									//距离自瞄
+bool g_bEspAimBot = false;										//骨骼自瞄
+
+bool g_bInitAimbot = false;										//初始化自瞄
+float g_fAimBotPos[Coordinate_Number];							//敌人位置
 
 float g_fAiMBotSet = 1.0f;										//自瞄微调
+
+int g_nOwnCamp = 0;												//自己阵营
 
 std::list<UINT> g_cDefenderStride;								//保卫者标识
 std::list<UINT> g_cSleeperStride;								//潜伏者标识								
@@ -32,7 +37,7 @@ int g_nMetrixBaseAddress = 0;									//矩阵基址
 int g_nAngleBaseAddress = 0;									//偏航角，俯仰角基址
 int g_nOwnBaseAddress = 0;										//自己基址
 int g_nTargetBaseAddress = 0;									//敌人基址
-int g_nTargetEsp = 0;											//敌人骨骼
+//int g_nTargetEsp = 0;											//敌人骨骼[是敌人基址]
 
 blackbone::Process g_cGame;										//游戏进程信息
 
@@ -225,15 +230,22 @@ void DrawImgui()
 	{
 		ImGui::Begin(u8"CSGO透视自瞄辅助模块", &g_bShowImgui);
 
-		ImGui::Text(u8"按键说明:F12   菜单显示开关");
-		ImGui::Text(u8"按键说明:Shift 自瞄最近敌人");
+		ImGui::Text(u8"按键说明:Insert   菜单显示开关");
+		ImGui::Text(u8"按键说明:Shift    自瞄最近敌人");
 		//ImGui::Checkbox(u8"透视保卫者", &g_bShowDefenders);
 		//ImGui::Checkbox(u8"透视潜伏者", &g_bShowSleeper);
-		ImGui::Checkbox(u8"自瞄保卫者", &g_bAiMBotDefenders);
-		ImGui::Checkbox(u8"自瞄潜伏者", &g_bAiMBotSleepers);
-		ImGui::Checkbox(u8"距离自瞄", &g_bDistanceAimBot);
+		ImGui::Checkbox(u8"方框自瞄", &g_bAiMBot);
+		ImGui::Checkbox(u8"距离自瞄模式", &g_bDistanceAimBot);
 		ImGui::SliderFloat(u8"自瞄微调", &g_fAiMBotSet, -20.0f, 20.0f);
-		ImGui::Checkbox(u8"全图人物方框", &g_bDrawBox);
+		if (ImGui::Checkbox(u8"骨骼自瞄", &g_bEspAimBot))
+		{
+			g_bAiMBot = false;
+			g_bDistanceAimBot = false;
+			g_fAiMBotSet = 2.0;
+		}
+		ImGui::Checkbox(u8"人物方框", &g_bDrawBox);
+		if (g_nOwnCamp == 2) ImGui::Text(u8"自己阵营:  潜伏者");
+		if (g_nOwnCamp == 3) ImGui::Text(u8"自己阵营:  保卫者");
 			
 		ImGui::End();
 	}
@@ -251,7 +263,7 @@ LRESULT CALLBACK MyWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 	if (uMsg == WM_KEYDOWN)
 	{
-		if (wParam == VK_F12)
+		if (wParam == VK_INSERT)//是否显示菜单
 			g_bShowImgui = !g_bShowImgui;
 	}
 
@@ -263,14 +275,14 @@ LRESULT CALLBACK MyWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 
 void InitializeStride()
 {
-	UINT nDefenderArray[] = { 64,116,136,140,256,934,991,1222,1258,1310,1374,1383,1410,1432,1439,1601,1611,1645,1702,1735,1967,2052,
-	2112,2151,2157,2254,2266,2482,2489,2539,2856,2924,2963,3093,3152,3137,3245,3630,4084,4320,4422,4510,4533,4666,5299,7163 };
-	UINT nSleeperArray[] = { 200,252,290,622,646,692,903,924,927,1003,1006,1053,1106,1197,1183,1214,1215,1273,1314,1345,1380,1395,
-	1462,1525,1671,1624,1914,1925,1996,2056,2112,2369,2447,2536,2663,3164,3225,3368,3692,3742,3836,3932,4159,4410,5572,7236};
-	for (int i = 0; i < sizeof(nDefenderArray) / sizeof(UINT); i++)
-		g_cDefenderStride.emplace_back(nDefenderArray[i]);
-	for (int i = 0; i < sizeof(nSleeperArray) / sizeof(UINT); i++)
-		g_cSleeperStride.emplace_back(nSleeperArray[i]);
+	//UINT nDefenderArray[] = { 64,116,136,140,256,934,991,1222,1258,1310,1374,1383,1410,1432,1439,1601,1611,1645,1702,1735,1967,2052,
+	//2112,2151,2157,2254,2266,2482,2489,2539,2856,2924,2963,3093,3152,3137,3245,3630,4084,4320,4422,4510,4533,4666,5299,7163 };
+	//UINT nSleeperArray[] = { 200,252,290,622,646,692,903,924,927,1003,1006,1053,1106,1197,1183,1214,1215,1273,1314,1345,1380,1395,
+	//1462,1525,1671,1624,1914,1925,1996,2056,2112,2369,2447,2536,2663,3164,3225,3368,3692,3742,3836,3932,4159,4410,5572,7236};
+	//for (int i = 0; i < sizeof(nDefenderArray) / sizeof(UINT); i++)
+	//	g_cDefenderStride.emplace_back(nDefenderArray[i]);
+	//for (int i = 0; i < sizeof(nSleeperArray) / sizeof(UINT); i++)
+	//	g_cSleeperStride.emplace_back(nSleeperArray[i]);
 }
 
 void InitializeData()
@@ -279,17 +291,17 @@ void InitializeData()
 	auto nClientBaseAddress = g_cGame.modules().GetModule(std::wstring(L"client_panorama.dll"))->baseAddress;
 	auto nEngineBaseAddress = g_cGame.modules().GetModule(std::wstring(L"engine.dll"))->baseAddress;
 
-	int nMatrixOffset = 0x4cfb924;
+	int nMatrixOffset = 0x4CFEAC4;
 	int nAngleOffset = 0x590D8C;
-	int nOwnBaseOffset = 0xCF7A3C;
-	int nTargetOffset = 0x4D09F04;
-	int nTargetEspOffset = 0x4D07DE4;
+	int nOwnBaseOffset = 0xCFAA3C;
+	int nTargetOffset = 0x4D0D094;
+	//int nTargetEspOffset = 0x4D09F04;
 	
 	g_nMetrixBaseAddress = static_cast<int>(nClientBaseAddress) + nMatrixOffset;
 	g_nAngleBaseAddress = static_cast<int>(nEngineBaseAddress) + nAngleOffset;
 	g_nOwnBaseAddress = static_cast<int>(nClientBaseAddress) + nOwnBaseOffset;
 	g_nTargetBaseAddress = static_cast<int>(nClientBaseAddress) + nTargetOffset;
-	g_nTargetEsp = static_cast<int>(nClientBaseAddress) + nTargetEspOffset;
+	//g_nTargetEsp = static_cast<int>(nClientBaseAddress) + nTargetEspOffset;
 }
 
 void DrawBox(IDirect3DDevice9* pDirect3DDevice, D3DCOLOR dwColor, int x, int y, int w, int h,int nBlood)
@@ -323,6 +335,13 @@ void DrawBox(IDirect3DDevice9* pDirect3DDevice, D3DCOLOR dwColor, int x, int y, 
 
 void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 {
+	auto IsOwn = [](const float* fPos1, const float* fPos2) -> bool
+	{
+		if ((abs(fPos1[Pos_X] - fPos2[Pos_X]) < 10) && (abs(fPos1[Pos_Y] - fPos2[Pos_Y]) < 10))
+				return true;
+		return false;
+	};
+
 	if (g_bDrawBox)
 	{
 		//获取游戏窗口的一半宽度和高度
@@ -336,8 +355,9 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		float pOwnPos[Coordinate_Number];					//自己坐标
 
 		int nBoxColor = D3DCOLOR_XRGB(0, 0, 255);			//人物方框颜色
-		int nPlayerCamp;									//人物阵营
-		int nPlayerCmapOffset = 0xf4;						//人物阵营偏移
+
+		int nPlayerCamp = 3;								//敌人阵营
+		int nPlayerCmapOffset = 0xf4;						//敌人阵营偏移
 
 		int nPlayerAddress = 0;								//人物基址
 		int nNextPlayerAddress = 0x10;						//下一个人物的地址偏移
@@ -349,9 +369,11 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		float fPlayerPos[Coordinate_Number];				//人物地址
 		AiMBotInfo stAiMBotInfo;							//最近的人物坐标
 
+		int nTargetEspNext = 0x10;							//下一个人物骨骼位置
 		int nTargetEspOffset1 = 0x26a8;						//骨骼一级偏移
 		int nTargetEspOffset2 = 0;							//骨骼二级偏移
-		int nTaegerEspAddress = 0;
+		int nTaegerEspAddress = 0;							//骨骼头部地址
+		float fEspPlayerPos[Coordinate_Number];				//骨骼头部坐标
 
 		float fOwnMatrix[4][4];								//矩阵
 
@@ -362,36 +384,36 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		//根据内存基地址加上偏移得到我们当前的坐标
 		g_cGame.memory().Read(nOwnPosBaseAddress + nOwnPosOffset, sizeof(pOwnPos), pOwnPos);
 
+		//读取我们自己的阵营
+		//g_cGame.memory().Read(g_nTargetBaseAddress, sizeof(int), &nPlayerAddress);
+		//g_cGame.memory().Read(nPlayerAddress + nPlayerCmapOffset, sizeof(nOwnCamp), &nOwnCamp);
+		//g_nOwnCamp = nOwnCamp;
+		//std::cout << nOwnCamp << std::endl;
+		
 		for (int i = 0; i <= 30; i++)
 		{
 			//读取人物基址
 			g_cGame.memory().Read(g_nTargetBaseAddress + i * nNextPlayerAddress, sizeof(int), &nPlayerAddress);
-			if(nPlayerAddress == 0)
-				continue;
-
-			//读取敌人骨骼
-			//g_cGame.memory().Read(g_nTargetEsp, sizeof(int), &nTaegerEspAddress);
-			//std::cout << "Base Address: " << nTaegerEspAddress << std::endl;
-			//g_cGame.memory().Read(nTaegerEspAddress + nTargetEspOffset1, sizeof(int), &nTaegerEspAddress);
-			//std::cout << "Firs tAddress: " << nTaegerEspAddress << std::endl;
-			//g_cGame.memory().Read(nTaegerEspAddress + nTargetEspOffset2, sizeof(int), &nTaegerEspAddress);
-			//nTaegerEspAddress += nTargetEspOffset2;
-			//std::cout << "Next Address : " << nTaegerEspAddress << std::endl;
-			//g_cGame.memory().Read(nTaegerEspAddress + 3 * sizeof(float), sizeof(float), &g_fTest[0]);
-			//g_cGame.memory().Read(nTaegerEspAddress + 7 * sizeof(float), sizeof(float), &g_fTest[1]);
-			//g_cGame.memory().Read(nTaegerEspAddress + 11 * sizeof(float), sizeof(float), &g_fTest[2]);
+			if(nPlayerAddress == 0)continue;
 
 			//读取人物血量
 			g_cGame.memory().Read(nPlayerAddress + nPlayerBloodOffset, sizeof(nPlayerBlood), &nPlayerBlood);
 
 			//当人物死亡
-			if (nPlayerBlood <= 0)
-				continue;
+			if (nPlayerBlood <= 0)continue;
 
 			//读取人物坐标
 			g_cGame.memory().Read(nPlayerAddress + nPlayerPosOffset, sizeof(fPlayerPos), fPlayerPos);
+
 			//读取人物阵营
 			g_cGame.memory().Read(nPlayerAddress + nPlayerCmapOffset, sizeof(nPlayerCamp), &nPlayerCamp);
+
+			//是自己
+			if (IsOwn(pOwnPos, fPlayerPos))
+			{
+				g_nOwnCamp = nPlayerCamp;
+				continue;
+			}
 
 			//朝向
 			float fTarget =
@@ -401,8 +423,7 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 				+ fOwnMatrix[2][3];
 
 			//我们后面的敌人不需要方框透视
-			if (fTarget < 0.01f)
-				continue;
+			if (fTarget < 0.01f)continue;
 
 			fTarget = 1.0f / fTarget;
 
@@ -424,10 +445,41 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 					+ fOwnMatrix[1][2] * (fPlayerPos[Pos_Z] - 5.0f)
 					+ fOwnMatrix[1][3])*fTarget*dwHalfHeight;
 
-			//区分阵营，也就是不对队友进行自瞄操作
-			if ((g_bAiMBotSleepers && nPlayerCamp == 2) ||(g_bAiMBotDefenders && nPlayerCamp == 3))
+			//读取敌人骨骼
+			if (g_bEspAimBot)
 			{
-				if (g_bDistanceAimBot)
+				//g_cGame.memory().Read(g_nTargetEsp + nTargetEspNext*i, sizeof(int), &nTaegerEspAddress);
+				//std::cout << "Base Address: " << nTaegerEspAddress << std::endl;
+				g_cGame.memory().Read(nPlayerAddress + nTargetEspOffset1, sizeof(int), &nTaegerEspAddress);
+				//std::cout << "Firs tAddress: " << nTaegerEspAddress << std::endl;
+				//g_cGame.memory().Read(nTaegerEspAddress + nTargetEspOffset2, sizeof(int), &nTaegerEspAddress);
+				nTaegerEspAddress += nTargetEspOffset2;
+				//std::cout << "Next Address : " << nTaegerEspAddress << std::endl;	//87
+				g_cGame.memory().Read(nTaegerEspAddress + 99 * sizeof(float), sizeof(float), &fEspPlayerPos[Pos_X]);
+				g_cGame.memory().Read(nTaegerEspAddress + 103 * sizeof(float), sizeof(float), &fEspPlayerPos[Pos_Y]);
+				g_cGame.memory().Read(nTaegerEspAddress + 107 * sizeof(float), sizeof(float), &fEspPlayerPos[Pos_Z]);
+			}
+
+			if ((nPlayerCamp != g_nOwnCamp) && g_bEspAimBot)//如果骨骼自瞄
+			{
+				int X = abs((int)(dwHalfWidth - fBoxX));
+				int Y = abs((int)dwHalfHeight - static_cast<int>(fBoxY_H));
+				if (stAiMBotInfo.fVector > X + Y)
+				{
+					stAiMBotInfo.fVector = (float)(X + Y);
+					stAiMBotInfo.fPlayerPos[Pos_X] = fEspPlayerPos[Pos_X];
+					stAiMBotInfo.fPlayerPos[Pos_Y] = fEspPlayerPos[Pos_Y];
+					stAiMBotInfo.fPlayerPos[Pos_Z] = fEspPlayerPos[Pos_Z];
+				}
+				//std::cout << "距离:" << fLen << std::endl;
+				//std::cout << fEspPlayerPos[Pos_X] << std::endl;
+				//std::cout << fEspPlayerPos[Pos_Y] << std::endl;
+				//std::cout << fEspPlayerPos[Pos_Z] << std::endl;
+			}
+			//区分阵营，也就是不对队友进行自瞄操作
+			else if (g_bAiMBot && (nPlayerCamp != g_nOwnCamp))
+			{
+				if (g_bDistanceAimBot)//人物距离自瞄
 				{
 					float fX = (pOwnPos[Pos_X] - fPlayerPos[Pos_X])*(pOwnPos[Pos_X] - fPlayerPos[Pos_X]);
 					float fY = (pOwnPos[Pos_Y] - fPlayerPos[Pos_Y])*(pOwnPos[Pos_Y] - fPlayerPos[Pos_Y]);
@@ -441,7 +493,7 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 						stAiMBotInfo.fPlayerPos[Pos_Z] = fPlayerPos[Pos_Z];
 					}
 				}
-				else
+				else//准星距离自瞄
 				{
 					int X = abs((int)(dwHalfWidth - fBoxX));
 					int Y = abs((int)dwHalfHeight - static_cast<int>(fBoxY_H));
@@ -471,8 +523,15 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		}
 
 		//对最近的人物进行自瞄
-		if ((g_bAiMBotSleepers || g_bAiMBotDefenders) && (GetAsyncKeyState(VK_SHIFT) & 0x8000))
-			AiMBot(pOwnPos, stAiMBotInfo.fPlayerPos);
+		if (g_bAiMBot || g_bEspAimBot)
+		{
+			if (GetAsyncKeyState(VK_SHIFT) & 0x8000)//按下Shite
+				AiMBot(pOwnPos, stAiMBotInfo.fPlayerPos);
+			else
+			{
+				g_bInitAimbot = false;
+			}
+		}
 	}
 }
 
@@ -484,10 +543,30 @@ void AiMBot(float* pOwnPos,float* pEnemyPos)
 	float pAngle[Angle_Number];				//偏斜角和俯仰角
 	static float PI = 3.1415f;				//
 
+	//刚刚开始自瞄一个敌人
+	if (g_bInitAimbot == false)
+	{
+		g_fAimBotPos[Pos_X] = pEnemyPos[Pos_X];
+		g_fAimBotPos[Pos_Y] = pEnemyPos[Pos_Y];
+		g_fAimBotPos[Pos_Z] = pEnemyPos[Pos_Z];
+		g_bInitAimbot = true;
+	}
+	else//还是自瞄着敌人，判断一下角度，防止打死一个敌人后立马瞄准下一个敌人
+	{
+		//超过了5度就是下一个敌人了，所以不进行自瞄操作
+		float fMaxLen = 80.0f;
+		float fLenX = abs(g_fAimBotPos[Pos_X] - pEnemyPos[Pos_X]);
+		float fLenY = abs(g_fAimBotPos[Pos_Y] - pEnemyPos[Pos_Y]);
+		float fLenZ = abs(g_fAimBotPos[Pos_Z] - pEnemyPos[Pos_Z]);
+
+		if (fLenX > fMaxLen || fLenY > fMaxLen || fLenZ > fMaxLen) return;
+	}
+
 	//得到我们坐标和敌人坐标的差值
 	float fDifferX = pOwnPos[Pos_X] - pEnemyPos[Pos_X];
 	float fDifferY = pOwnPos[Pos_Y] - pEnemyPos[Pos_Y];
 	float fDifferZ = pOwnPos[Pos_Z] - pEnemyPos[Pos_Z];
+	if (g_bEspAimBot)fDifferZ += 60 + g_fAiMBotSet;
 
 	//先求偏斜角度X
 	pAngle[Angle_X] = atan(fDifferY / fDifferX);
@@ -501,10 +580,13 @@ void AiMBot(float* pOwnPos,float* pEnemyPos)
 		pAngle[Angle_X] = pAngle[Angle_X] / PI * 180 + 180;
 
 	//再求仰俯角Y
-	pAngle[Angle_Y] = atan(fDifferZ / sqrt(fDifferX * fDifferX + fDifferY * fDifferY)) / PI * 180.0f + g_fAiMBotSet;
+	pAngle[Angle_Y] = atan(fDifferZ / sqrt(fDifferX * fDifferX + fDifferY * fDifferY)) / PI * 180.0f;
+	if (g_bAiMBot)pAngle[Angle_Y] += g_fAiMBotSet;
+
+	//获取角度的地址
+	g_cGame.memory().Read(g_nAngleBaseAddress, sizeof(int), &nAngleAddress);
 
 	//将角度写入
-	g_cGame.memory().Read(g_nAngleBaseAddress, sizeof(int), &nAngleAddress);
 	g_cGame.memory().Write(nAngleAddress + nAngleOffsetX, sizeof(pAngle), pAngle);
 }
 
