@@ -38,5 +38,10 @@ Debug
 *.idb
 *.pdb
 
-
+*.db
+*.ipch
+*.tlog
+*.iobj
+*.exp
+*.ipdb
 

@@ -291,10 +291,10 @@ void InitializeData()
 	auto nClientBaseAddress = g_cGame.modules().GetModule(std::wstring(L"client_panorama.dll"))->baseAddress;
 	auto nEngineBaseAddress = g_cGame.modules().GetModule(std::wstring(L"engine.dll"))->baseAddress;
 
-	int nMatrixOffset = 0x4CFEAC4;
+	int nMatrixOffset = 0x4CFEAD4;
 	int nAngleOffset = 0x590D8C;
-	int nOwnBaseOffset = 0xCFAA3C;
-	int nTargetOffset = 0x4D0D094;
+	int nOwnBaseOffset = 0xD27AAC;
+	int nTargetOffset = 0x4D0D0a4;
 	//int nTargetEspOffset = 0x4D09F04;
 	
 	g_nMetrixBaseAddress = static_cast<int>(nClientBaseAddress) + nMatrixOffset;
@@ -375,6 +375,9 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		int nTaegerEspAddress = 0;							//骨骼头部地址
 		float fEspPlayerPos[Coordinate_Number];				//骨骼头部坐标
 
+		int nFlashAlphaAddress = 0xA3F0;					//闪光透明度地址
+		float fFlashAlpha = 10.0;							//闪光透明度
+
 		float fOwnMatrix[4][4];								//矩阵
 
 		//读取矩阵信息
@@ -411,6 +414,9 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 			//是自己
 			if (IsOwn(pOwnPos, fPlayerPos))
 			{
+				//闪光透明度
+				g_cGame.memory().Write(nPlayerAddress + nFlashAlphaAddress, sizeof(float), &fFlashAlpha);
+
 				g_nOwnCamp = nPlayerCamp;
 				continue;
 			}

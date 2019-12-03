@@ -231,7 +231,7 @@ client_panorama.dll + 4CFBA84
 client_panorama.dll + 4CFDA34
 client_panorama.dll + 4CFEA84
 client_panorama.dll + 4CFEAC4
-
+client_panorama.dll + 4CFEAD4
 
 【00 00 00 00 01 00 00 00 C0 CC 2C 04 14 67 E3 15】
 这个角度是游戏引擎里面的，不会变
@@ -254,7 +254,10 @@ client_panorama.dll+CF9A4C
 client_panorama.dll+CFAA2C
 -----------------------------
 client_panorama.dll+CFAA3C
-
+-------------------------------
+client_panorama.dll+CFAA3C
+-----------------------------
+client_panorama.dll+D27AAC
 
 【第一个是我们自己的信息，下面是敌人的信息】【3 5 7 9】
 【骨骼索引和位置索引一样的！！！！】
@@ -274,7 +277,8 @@ client_panorama.dll+4D0C004
 ------------------------------------
 client_panorama.dll+4D0D054
 -------------------------------
-client_panorama.dll+4D0D094
+client_panorama.dll+4D0D0a4
+-------------------------------------
 
 
 
@@ -295,8 +299,18 @@ client_panorama.dll+4D0B334
 client_panorama.dll+4D09F14
 
 
-0 1 2 3 4 5 6 7
+client_panorama.dll+4D0D094-50
++4=00950096
++0c-1c=0
++24=192
++28-2c=0
++38=0
++3c=P->2b064414
++48=0
++50=[763 762]
 
+
+54 53 70 61 77 6E 00 73
 
 
 
