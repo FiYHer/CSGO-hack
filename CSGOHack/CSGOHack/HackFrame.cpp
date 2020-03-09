@@ -20,8 +20,8 @@ bool g_bShowDefenders = false;									//显示保卫者
 bool g_bShowSleeper = false;									//显示潜伏者
 bool g_bDrawBox = false;										//显示人物方框
 bool g_bAiMBot = false;											//开启自瞄
-bool g_bDistanceAimBot = false;									//距离自瞄
-bool g_bEspAimBot = false;										//骨骼自瞄
+bool g_bDistanceAimBot = false;							//距离自瞄
+bool g_bEspAimBot = false;									//骨骼自瞄
 
 bool g_bInitAimbot = false;										//初始化自瞄
 float g_fAimBotPos[Coordinate_Number];							//敌人位置
@@ -144,7 +144,6 @@ HRESULT _stdcall MyEndScene(IDirect3DDevice9* pDirect3DDevice)
 		g_fOriginProc = (WNDPROC)SetWindowLongPtrA(g_hGameWindow, GWL_WNDPROC, (LONG)MyWindowProc);
 		InitializeImgui();
 		InitializeData();
-		//InitializeStride();
 	}
 
 	DrawPlayerBox(pDirect3DDevice);
@@ -291,10 +290,10 @@ void InitializeData()
 	auto nClientBaseAddress = g_cGame.modules().GetModule(std::wstring(L"client_panorama.dll"))->baseAddress;
 	auto nEngineBaseAddress = g_cGame.modules().GetModule(std::wstring(L"engine.dll"))->baseAddress;
 
-	int nMatrixOffset = 0x4CFEAD4;
-	int nAngleOffset = 0x590D8C;
-	int nOwnBaseOffset = 0xD27AAC;
-	int nTargetOffset = 0x4D0D0a4;
+	int nMatrixOffset = 0x4D36454;//矩阵
+	int nAngleOffset = 0x589D9C;//角度
+	int nOwnBaseOffset = 0xD30B84;//位置
+	int nTargetOffset = 0x4D44A04;//敌人
 	//int nTargetEspOffset = 0x4D09F04;
 	
 	g_nMetrixBaseAddress = static_cast<int>(nClientBaseAddress) + nMatrixOffset;
@@ -351,7 +350,7 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		DWORD dwHalfHeight = stView.Height / 2;
 
 		int nOwnPosBaseAddress = 0;							//自己坐标基地址
-		int nOwnPosOffset = 0x35A4;							//自己坐标偏移
+		int nOwnPosOffset = 0x35A8;								//自己坐标偏移
 		float pOwnPos[Coordinate_Number];					//自己坐标
 
 		int nBoxColor = D3DCOLOR_XRGB(0, 0, 255);			//人物方框颜色
@@ -375,7 +374,7 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		int nTaegerEspAddress = 0;							//骨骼头部地址
 		float fEspPlayerPos[Coordinate_Number];				//骨骼头部坐标
 
-		int nFlashAlphaAddress = 0xA3F0;					//闪光透明度地址
+		int nFlashAlphaAddress = 0xA40C;					//闪光透明度地址
 		float fFlashAlpha = 10.0;							//闪光透明度
 
 		float fOwnMatrix[4][4];								//矩阵
@@ -393,7 +392,7 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 		//g_nOwnCamp = nOwnCamp;
 		//std::cout << nOwnCamp << std::endl;
 		
-		for (int i = 0; i <= 30; i++)
+		for (int i = 0; i <= 100; i++)
 		{
 			//读取人物基址
 			g_cGame.memory().Read(g_nTargetBaseAddress + i * nNextPlayerAddress, sizeof(int), &nPlayerAddress);
@@ -403,7 +402,7 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 			g_cGame.memory().Read(nPlayerAddress + nPlayerBloodOffset, sizeof(nPlayerBlood), &nPlayerBlood);
 
 			//当人物死亡
-			if (nPlayerBlood <= 0)continue;
+			if (nPlayerBlood <= 0) continue;
 
 			//读取人物坐标
 			g_cGame.memory().Read(nPlayerAddress + nPlayerPosOffset, sizeof(fPlayerPos), fPlayerPos);
@@ -454,19 +453,13 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 			//读取敌人骨骼
 			if (g_bEspAimBot)
 			{
-				//g_cGame.memory().Read(g_nTargetEsp + nTargetEspNext*i, sizeof(int), &nTaegerEspAddress);
-				//std::cout << "Base Address: " << nTaegerEspAddress << std::endl;
 				g_cGame.memory().Read(nPlayerAddress + nTargetEspOffset1, sizeof(int), &nTaegerEspAddress);
-				//std::cout << "Firs tAddress: " << nTaegerEspAddress << std::endl;
-				//g_cGame.memory().Read(nTaegerEspAddress + nTargetEspOffset2, sizeof(int), &nTaegerEspAddress);
-				nTaegerEspAddress += nTargetEspOffset2;
-				//std::cout << "Next Address : " << nTaegerEspAddress << std::endl;	//87
 				g_cGame.memory().Read(nTaegerEspAddress + 99 * sizeof(float), sizeof(float), &fEspPlayerPos[Pos_X]);
 				g_cGame.memory().Read(nTaegerEspAddress + 103 * sizeof(float), sizeof(float), &fEspPlayerPos[Pos_Y]);
 				g_cGame.memory().Read(nTaegerEspAddress + 107 * sizeof(float), sizeof(float), &fEspPlayerPos[Pos_Z]);
 			}
 
-			if ((nPlayerCamp != g_nOwnCamp) && g_bEspAimBot)//如果骨骼自瞄
+			if ((nPlayerCamp != g_nOwnCamp) && g_bEspAimBot)//如果是敌人 && 骨骼自瞄
 			{
 				int X = abs((int)(dwHalfWidth - fBoxX));
 				int Y = abs((int)dwHalfHeight - static_cast<int>(fBoxY_H));
@@ -477,10 +470,6 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 					stAiMBotInfo.fPlayerPos[Pos_Y] = fEspPlayerPos[Pos_Y];
 					stAiMBotInfo.fPlayerPos[Pos_Z] = fEspPlayerPos[Pos_Z];
 				}
-				//std::cout << "距离:" << fLen << std::endl;
-				//std::cout << fEspPlayerPos[Pos_X] << std::endl;
-				//std::cout << fEspPlayerPos[Pos_Y] << std::endl;
-				//std::cout << fEspPlayerPos[Pos_Z] << std::endl;
 			}
 			//区分阵营，也就是不对队友进行自瞄操作
 			else if (g_bAiMBot && (nPlayerCamp != g_nOwnCamp))
@@ -517,11 +506,6 @@ void DrawPlayerBox(IDirect3DDevice9* pDirect3DDevice)
 				nBoxColor = D3DCOLOR_XRGB(255, 0, 0);//潜伏者
 			if (nPlayerCamp == 3)
 				nBoxColor = D3DCOLOR_XRGB(0, 255, 0);//保卫者
-
-			//std::cout
-			//	<< "X距离原点" << abs((int)(dwHalfWidth - fBoxX))
-			//	<< "Y距离原点" << abs((int)dwHalfHeight - static_cast<int>(fBoxY_H))
-			//	<< std::endl;
 
 			DrawBox(pDirect3DDevice, nBoxColor,
 				static_cast<int>(fBoxX - ((fBoxY_W - fBoxY_H) / 4.0f)), static_cast<int>(fBoxY_H),
@@ -572,22 +556,18 @@ void AiMBot(float* pOwnPos,float* pEnemyPos)
 	float fDifferX = pOwnPos[Pos_X] - pEnemyPos[Pos_X];
 	float fDifferY = pOwnPos[Pos_Y] - pEnemyPos[Pos_Y];
 	float fDifferZ = pOwnPos[Pos_Z] - pEnemyPos[Pos_Z];
-	if (g_bEspAimBot)fDifferZ += 60 + g_fAiMBotSet;
+	if (g_bEspAimBot) fDifferZ += 60 + g_fAiMBotSet;
 
 	//先求偏斜角度X
 	pAngle[Angle_X] = atan(fDifferY / fDifferX);
-	if (fDifferX >= 0.0f && fDifferY >= 0.0f)
-		pAngle[Angle_X] = pAngle[Angle_X] / PI * 180 - 180;
-	else if (fDifferX < 0.0f && fDifferY >= 0.0f)
-		pAngle[Angle_X] = pAngle[Angle_X] / PI * 180;
-	else if (fDifferX < 0.0f && fDifferY < 0.0)
-		pAngle[Angle_X] = pAngle[Angle_X] / PI * 180;
-	else if (fDifferX >= 0.0f && fDifferY < 0.0f)
-		pAngle[Angle_X] = pAngle[Angle_X] / PI * 180 + 180;
+	if (fDifferX >= 0.0f && fDifferY >= 0.0f) pAngle[Angle_X] = pAngle[Angle_X] / PI * 180 - 180;
+	else if (fDifferX < 0.0f && fDifferY >= 0.0f) pAngle[Angle_X] = pAngle[Angle_X] / PI * 180;
+	else if (fDifferX < 0.0f && fDifferY < 0.0) pAngle[Angle_X] = pAngle[Angle_X] / PI * 180;
+	else if (fDifferX >= 0.0f && fDifferY < 0.0f) pAngle[Angle_X] = pAngle[Angle_X] / PI * 180 + 180;
 
 	//再求仰俯角Y
 	pAngle[Angle_Y] = atan(fDifferZ / sqrt(fDifferX * fDifferX + fDifferY * fDifferY)) / PI * 180.0f;
-	if (g_bAiMBot)pAngle[Angle_Y] += g_fAiMBotSet;
+	if (g_bAiMBot) pAngle[Angle_Y] += g_fAiMBotSet;
 
 	//获取角度的地址
 	g_cGame.memory().Read(g_nAngleBaseAddress, sizeof(int), &nAngleAddress);
