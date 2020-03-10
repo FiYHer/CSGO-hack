@@ -1,7 +1,11 @@
 #include "CSCheat.h"
+
+#include <process.h>
+using namespace std;
 #pragma warning(disable:4244)
 
-game_data g_data;		//游戏全局数据
+game_data g_data;			//游戏全局数据
+super_data g_super;		//超级作弊数据
 
 BOOL WINAPI DllMain(_In_ void* _DllHandle, _In_ unsigned long _Reason, _In_opt_ void* _Reserved)
 {
@@ -88,6 +92,7 @@ HRESULT _stdcall my_endscene(IDirect3DDevice9* pDirect3DDevice)
 
 	draw_meun();
 	hack_manager();
+	repoter_players(g_super);
 
 	HRESULT hRet = pDirect3DDevice->EndScene();
 	g_data.d3d_hook.ModifyAddress(d3dhook::D3dClass::Class_IDirect3DDevice9, d3dhook::Direct3DDevice_Function::F_EndScene);
@@ -202,9 +207,40 @@ void draw_meun()
 		ImGui::Separator();
 
 		ImGui::Checkbox(u8"无视闪光", &g_data.ignore_flash);
+		ImGui::SameLine();
 		ImGui::Checkbox(u8"显示护甲值", &g_data.show_armor);
+		ImGui::SameLine();
 		ImGui::Checkbox(u8"显示金钱值", &g_data.show_money);
+		ImGui::SameLine();
 		ImGui::Checkbox(u8"显示血量值", &g_data.show_blood);
+		ImGui::Separator();
+
+		ImGui::RadioButton(u8"关闭举报", &g_super.report_mode, 0);
+		ImGui::SameLine();
+		ImGui::RadioButton(u8"全部举报", &g_super.report_mode, 1);
+		ImGui::SameLine();
+		ImGui::RadioButton(u8"针对举报", &g_super.report_mode, 2);
+		ImGui::Separator();
+
+		ImGui::Checkbox(u8"举报骂人", &g_super.report_curse);
+		ImGui::SameLine();
+		ImGui::Checkbox(u8"举报消极游戏", &g_super.report_grief);
+		ImGui::SameLine();
+		ImGui::Checkbox(u8"举报透视", &g_super.report_wallhack);
+		ImGui::SameLine();
+		ImGui::Checkbox(u8"举报自瞄", &g_super.report_aim);
+		ImGui::SameLine();
+		ImGui::Checkbox(u8"举报变速", &g_super.report_speed);
+
+		if (g_super.report_mode == 2)
+		{
+			ImGui::Begin(u8"房间成员信息");
+			static int id = 0;
+			ImGui::InputInt(u8"UserID", &id);
+			g_super.target_playerid = id;
+			for (auto& it : g_super.inline_players) ImGui::BulletText(it.c_str());
+			ImGui::End();
+		}
 
 		ImGui::End();
 	}

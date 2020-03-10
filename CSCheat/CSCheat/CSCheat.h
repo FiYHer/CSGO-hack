@@ -3,16 +3,12 @@
 #define  _CRT_SECURE_NO_WARNINGS
 #endif //_CRT_SECURE_NO_WARNINGS
 
-#include "D3DHook.h"
 #include "Imgui/imgui.h"
 #include "Imgui/imgui_impl_dx9.h"
 #include "Imgui/imgui_impl_win32.h"
 
-#include <vector>
-#include <fstream>
-using namespace std;
-
-#include <process.h>
+#include "D3DHook.h"
+#include "SuperHack.h"
 
 //游戏数据保存结构
 typedef struct game_data

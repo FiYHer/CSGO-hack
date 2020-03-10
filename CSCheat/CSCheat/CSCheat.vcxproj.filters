@@ -80,5 +80,8 @@
     <ClInclude Include="CSCheat.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="SuperHack.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
