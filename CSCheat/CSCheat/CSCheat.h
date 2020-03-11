@@ -58,6 +58,9 @@ typedef struct game_data
 	}
 }game_data;
 
+//隐藏自身模块
+void hide_self(void* module);
+
 //初始化线程函数
 void __cdecl  _beginthread_proc(void*);
 

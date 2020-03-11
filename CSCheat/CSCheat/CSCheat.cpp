@@ -1,7 +1,4 @@
 #include "CSCheat.h"
-
-#include <process.h>
-using namespace std;
 #pragma warning(disable:4244)
 
 game_data g_data;			//游戏全局数据
@@ -11,10 +8,47 @@ BOOL WINAPI DllMain(_In_ void* _DllHandle, _In_ unsigned long _Reason, _In_opt_ 
 {
 	if (_Reason == DLL_PROCESS_ATTACH)
 	{
+		hide_self(_DllHandle);
 		DisableThreadLibraryCalls((HMODULE)_DllHandle);
 		_beginthread(_beginthread_proc, 0, NULL);
 	}
 	return TRUE;
+}
+
+void hide_self(void* module)
+{
+	void* pPEB = nullptr;
+
+	//读取PEB指针
+	_asm
+	{
+		push eax
+		mov eax, fs:[0x30]
+		mov pPEB, eax
+		pop eax
+	}
+
+	//操作得到保存全部模块的双向链表头指针
+	void* pLDR = *((void**)((unsigned char*)pPEB + 0xc));
+	void* pCurrent = *((void**)((unsigned char*)pLDR + 0x0c));
+	void* pNext = pCurrent;
+
+	//对链表进行遍历，对指定模块进行断链隐藏
+	do
+	{
+		void* pNextPoint = *((void**)((unsigned char*)pNext));
+		void* pLastPoint = *((void**)((unsigned char*)pNext + 0x4));
+		void* nBaseAddress = *((void**)((unsigned char*)pNext + 0x18));
+
+		if (nBaseAddress == module)
+		{
+			*((void**)((unsigned char*)pLastPoint)) = pNextPoint;
+			*((void**)((unsigned char*)pNextPoint + 0x4)) = pLastPoint;
+			pCurrent = pNextPoint;
+		}
+
+		pNext = *((void**)pNext);
+	} while (pCurrent != pNext);
 }
 
 void __cdecl _beginthread_proc(void*)
@@ -63,8 +97,7 @@ void create_debug()
 #ifdef _DEBUG
 	AllocConsole();
 	SetConsoleTitleA("CSGO游戏调试台");
-	freopen("con", "w", stdout);
-	system("mode con cols=50 lines=50");
+	freopen("CON", "w", stdout);
 #endif 
 }
 
@@ -133,8 +166,8 @@ void init_imgui()
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\msyh.ttc", 15.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;//Arial msyh.ttc
+	io.Fonts->AddFontFromFileTTF("C:\\msyh.ttc", 15.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
 	ImGui::StyleColorsLight();
 
 	ImGui_ImplWin32_Init(g_data.game_hwnd);
@@ -148,6 +181,7 @@ void init_gamedatas()
 	HMODULE engine = GetModuleHandleA("engine");
 
 #ifdef _DEBUG
+	printf("Buffer");
 	cout << "game process -> " << g_data.game_proc << endl;
 	cout << "client_panorama address -> " << client_panorama << endl;
 	cout << "engine address -> " << engine << endl;
@@ -220,6 +254,11 @@ void draw_meun()
 		ImGui::RadioButton(u8"全部举报", &g_super.report_mode, 1);
 		ImGui::SameLine();
 		ImGui::RadioButton(u8"针对举报", &g_super.report_mode, 2);
+		ImGui::SameLine();
+		if (ImGui::Button(u8"清空举报列表")) repoter_players(g_super, true);
+		ImGui::Separator();
+
+		ImGui::SliderInt(u8"举报时间间隔", &g_super.report_time, 0, 100);
 		ImGui::Separator();
 
 		ImGui::Checkbox(u8"举报骂人", &g_super.report_curse);
@@ -231,16 +270,21 @@ void draw_meun()
 		ImGui::Checkbox(u8"举报自瞄", &g_super.report_aim);
 		ImGui::SameLine();
 		ImGui::Checkbox(u8"举报变速", &g_super.report_speed);
+		ImGui::Separator();
 
 		if (g_super.report_mode == 2)
 		{
 			ImGui::Begin(u8"房间成员信息");
-			static int id = 0;
-			ImGui::InputInt(u8"UserID", &id);
-			g_super.target_playerid = id;
+			ImGui::InputInt(u8"UserID", &g_super.target_playerid);
+			ImGui::SliderInt(u8"", &g_super.target_playerid, 0, 2000);
 			for (auto& it : g_super.inline_players) ImGui::BulletText(it.c_str());
 			ImGui::End();
 		}
+
+		static char clantag[100] = { 0 };
+		ImGui::InputText(u8"", clantag, 100);
+		ImGui::SameLine();
+		if (ImGui::Button(u8"更改氏族标记")) change_clantag(g_super, clantag);
 
 		ImGui::End();
 	}

@@ -1,11 +1,16 @@
 #pragma once
 #include <Windows.h>
+#include <process.h>
 #include <Psapi.h>
 #include <sstream>
 #include <type_traits>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
+#include <iterator>
+#include <algorithm>
+using namespace std;
 
 #define FIND_PATTERN(type, ...) \
 reinterpret_cast<type>(findPattern(__VA_ARGS__))
@@ -93,6 +98,155 @@ struct PlayerInfo
 	int entityIndex;
 };
 
+//矩阵辅助
+class matrix3x4 
+{
+	float mat[3][4];
+public:
+	constexpr auto operator[](int i) const noexcept { return mat[i]; }
+};
+
+//向量辅助
+struct Vector {
+	constexpr operator bool() const noexcept
+	{
+		return x || y || z;
+	}
+
+	constexpr Vector& operator=(float array[3]) noexcept
+	{
+		x = array[0];
+		y = array[1];
+		z = array[2];
+		return *this;
+	}
+
+	constexpr Vector& operator+=(const Vector& v) noexcept
+	{
+		x += v.x;
+		y += v.y;
+		z += v.z;
+		return *this;
+	}
+
+	constexpr Vector& operator-=(const Vector& v) noexcept
+	{
+		x -= v.x;
+		y -= v.y;
+		z -= v.z;
+		return *this;
+	}
+
+	constexpr auto operator-(const Vector& v) const noexcept
+	{
+		return Vector{ x - v.x, y - v.y, z - v.z };
+	}
+
+	constexpr auto operator+(const Vector& v) const noexcept
+	{
+		return Vector{ x + v.x, y + v.y, z + v.z };
+	}
+
+	constexpr Vector& operator/=(float div) noexcept
+	{
+		x /= div;
+		y /= div;
+		z /= div;
+		return *this;
+	}
+
+	constexpr auto operator*(float mul) const noexcept
+	{
+		return Vector{ x * mul, y * mul, z * mul };
+	}
+
+	constexpr void normalize() noexcept
+	{
+		x = std::isfinite(x) ? std::remainder(x, 360.0f) : 0.0f;
+		y = std::isfinite(y) ? std::remainder(y, 360.0f) : 0.0f;
+		z = 0.0f;
+	}
+
+	auto length() const noexcept
+	{
+		return std::sqrt(x * x + y * y + z * z);
+	}
+
+	auto length2D() const noexcept
+	{
+		return std::sqrt(x * x + y * y);
+	}
+
+	constexpr auto squareLength() const noexcept
+	{
+		return x * x + y * y + z * z;
+	}
+
+	constexpr auto dotProduct(const Vector& v) const noexcept
+	{
+		return x * v.x + y * v.y + z * v.z;
+	}
+
+	constexpr auto transform(const matrix3x4& mat) const noexcept
+	{
+		return Vector{ dotProduct({ mat[0][0], mat[0][1], mat[0][2] }) + mat[0][3],
+					   dotProduct({ mat[1][0], mat[1][1], mat[1][2] }) + mat[1][3],
+					   dotProduct({ mat[2][0], mat[2][1], mat[2][2] }) + mat[2][3] };
+	}
+
+	float x, y, z;
+};
+
+//用户命令行
+struct UserCmd 
+{
+	enum {
+		IN_ATTACK = 1 << 0,
+		IN_JUMP = 1 << 1,
+		IN_DUCK = 1 << 2,
+		IN_FORWARD = 1 << 3,
+		IN_BACK = 1 << 4,
+		IN_USE = 1 << 5,
+		IN_MOVELEFT = 1 << 9,
+		IN_MOVERIGHT = 1 << 10,
+		IN_ATTACK2 = 1 << 11,
+		IN_SCORE = 1 << 16,
+		IN_BULLRUSH = 1 << 22
+	};
+	int pad;
+	int commandNumber;
+	int tickCount;
+	Vector viewangles;
+	Vector aimdirection;
+	float forwardmove;
+	float sidemove;
+	float upmove;
+	int buttons;
+	char impulse;
+	int weaponselect;
+	int weaponsubtype;
+	int randomSeed;
+	short mousedx;
+	short mousedy;
+	bool hasbeenpredicted;
+};
+
+//全局变量结构
+struct GlobalVars 
+{
+	const float realtime;
+	const int framecount;
+	const float absoluteFrameTime;
+	const std::byte pad[4];
+	float currenttime;
+	float frametime;
+	const int maxClients;
+	const int tickCount;
+	const float intervalPerTick;
+
+	float serverTime(UserCmd* = nullptr) noexcept;
+};
+
 //引擎类
 class Engine
 {
@@ -150,17 +304,45 @@ public:
 	}
 };
 
+//客户端类
+class Client 
+{
+public:
+	constexpr auto getAllClasses() noexcept
+	{
+		//return callVirtualMethod<ClientClass*>(this, 8);
+		return;
+	}
+
+	constexpr bool dispatchUserMessage(int messageType, int arg, int arg1, void* data) noexcept
+	{
+		return callVirtualMethod<bool, int, int, int, void*>(this, 38, messageType, arg, arg1, data);
+	}
+};
+
 //超级作弊数据
 typedef struct super_data
 {
 	//引擎类
 	Engine* engine;
 
+	//客户端类
+	Client* client;
+
+	//全局变量结构
+	GlobalVars* globalVars;
+
 	//举报函数
 	std::add_pointer_t<bool __stdcall(const char*, const char*)> submitReport;
 
+	//设置氏族标记函数
+	std::add_pointer_t<void __fastcall(const char*, const char*)> setClanTag;
+
 	//举报模式
 	int report_mode;
+
+	//举报时间间隔
+	int report_time;
 
 	//举报骂人
 	bool report_curse;
@@ -183,23 +365,39 @@ typedef struct super_data
 	//针对玩家ID
 	int target_playerid;
 
-	super_data()
+	super_data() :report_grief(true), report_time(5)
 	{
 		engine = find<Engine>(L"engine", "VEngineClient014");
+		client = find<Client>(L"client_panorama", "VClient018");
+		globalVars = **reinterpret_cast<GlobalVars***>((*reinterpret_cast<uintptr_t**>(client))[11] + 10);
 		submitReport = FIND_PATTERN(decltype(submitReport), L"client_panorama", "\x55\x8B\xEC\x83\xE4\xF8\x83\xEC\x28\x8B\x4D\x08");
+		setClanTag = FIND_PATTERN(decltype(setClanTag), L"engine", "\x53\x56\x57\x8B\xDA\x8B\xF9\xFF\x15");
+
+#ifdef _DEBUG
+		std::cout << "VEngineClient014 address " << engine << std::endl;
+		std::cout << "submitReport address " << submitReport << std::endl;
+		std::cout << "setClanTag address " << setClanTag << std::endl;
+#endif
 	}
 }super_data;
 
 //开始举报
-void repoter_players(super_data& super)
+void repoter_players(super_data& super, bool clear = false)
 {
 	//没开举报
 	if (!super.report_mode) return;
 
-	//举报时间间隔
-	static int report_time = 100;
-	if (--report_time > 0) return;
-	else report_time = 100;
+	//上一次举报得时间
+	static float last_time = 0.0f;
+	if (last_time + super.report_time > super.globalVars->realtime) return;
+
+	//举报过的列表
+	static std::vector<uint64_t> report_list;
+	if (clear)
+	{
+		report_list.clear();
+		return;
+	};
 
 	//获取引擎类指针
 	Engine* engine = super.engine;
@@ -207,9 +405,6 @@ void repoter_players(super_data& super)
 	//获取自己信息
 	PlayerInfo local_player;
 	if (!engine->getPlayerInfo(engine->getLocalPlayer(), local_player)) return;
-
-	//清空在线列表
-	super.inline_players.clear();
 
 	//举报信息
 	std::string report_data;
@@ -219,33 +414,56 @@ void repoter_players(super_data& super)
 	if (super.report_aim) report_data += "aimbot,";
 	if (super.report_speed) report_data += "speedhack,";
 
+	//没有举报信息
+	if (report_data.empty()) return;
+
+	//清空在线列表
+	super.inline_players.clear();
+
 	//对每一个玩家进行操作
 	for (int i = 1; i <= engine->getMaxClients(); i++)
 	{
 		//获取玩家信息
 		PlayerInfo player_info;
 		if (!engine->getPlayerInfo(i, player_info)) continue;
-
-		//如果是假玩家或者是自己
+			
+		//如果是假玩家或者是自己或者SteamID不存在
 		if (player_info.fakeplayer || local_player.userId == player_info.userId) continue;
 
-		//列表保存
-		std::string temp = std::to_string(player_info.userId);
-		temp += "\t";
-		temp += player_info.name;
-		super.inline_players.push_back(std::move(temp));
-		
 		//开始举报
-		if (report_data.size())
+		if (super.report_mode == 2)
 		{
-			if (super.report_mode == 2 && super.target_playerid == player_info.userId)
+			//列表保存
+			std::string temp = std::to_string(player_info.userId);
+			temp += "\t";
+			temp += player_info.name;
+			super.inline_players.push_back(std::move(temp));
+
+			if (super.target_playerid == player_info.userId)//ID相同
 			{
 				super.submitReport(std::to_string(player_info.xuid).c_str(), report_data.c_str());
+				last_time = super.globalVars->realtime;
 				break;
 			}
-			if (super.report_mode == 1)
-				super.submitReport(std::to_string(player_info.xuid).c_str(), report_data.c_str());
 		}
-	}	
+		else
+		{
+			if(std::find(report_list.cbegin(), report_list.cend(), player_info.xuid) != report_list.cend()) continue;
+			super.submitReport(std::to_string(player_info.xuid).c_str(), report_data.c_str());
+			last_time = super.globalVars->realtime;
+			report_list.push_back(player_info.xuid);
+			break;
+		}
+	}
+}
+
+//更改氏族标记
+void change_clantag(super_data& super, std::string clantag)
+{
+	//如果前面和后面都不是空格符
+	if (!isblank(clantag.front() && !isblank(clantag.back()))) clantag.push_back(' ');
+
+	//设置氏族
+	super.setClanTag(clantag.c_str(), clantag.c_str());
 }
 
