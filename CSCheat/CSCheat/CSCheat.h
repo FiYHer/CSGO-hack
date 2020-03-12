@@ -32,10 +32,11 @@ typedef struct game_data
 	bool show_friend;								//显示队友
 
 	bool open_mirror;								//开镜自瞄
-	bool player_jump;								//跳跃自瞄
+	bool right_down;									//右键自瞄
 	bool quiet_step;									//静步自瞄
 	bool player_squat;								//下蹲自瞄
 
+	int tolerate_angle;								//最大容忍角度
 	int mirror_ms;										//开镜自瞄开枪间隔
 	int mode_type;									//模式类型
 	int distance_type;								//距离类型
@@ -55,6 +56,7 @@ typedef struct game_data
 		show_meun = true;
 		aim_offset = 1.5f;
 		mirror_ms = 25;
+		tolerate_angle = 45;
 	}
 }game_data;
 

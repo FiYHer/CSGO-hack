@@ -12,7 +12,7 @@ client_panorama.dll + 4D35208
 client_panorama.dll + 4D36344
 client_panorama.dll + 4D36454
 
-自己角度	4D88
+自己角度	4D88	X[180du]
 engine.dll+590D8C
 engine.dll+588DA4
 engine.dll+588D9C

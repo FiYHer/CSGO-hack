@@ -217,7 +217,7 @@ void draw_meun()
 
 		ImGui::Checkbox(u8"开镜自瞄", &g_data.open_mirror);
 		ImGui::SameLine();
-		ImGui::Checkbox(u8"跳跃自瞄", &g_data.player_jump);
+		ImGui::Checkbox(u8"右键自瞄", &g_data.right_down);
 		ImGui::SameLine();
 		ImGui::Checkbox(u8"静步自瞄", &g_data.quiet_step);
 		ImGui::SameLine();
@@ -225,6 +225,9 @@ void draw_meun()
 		ImGui::Separator();
 
 		ImGui::SliderInt(u8"开镜自瞄时间间隔", &g_data.mirror_ms, 5, 100);
+		ImGui::Separator();
+
+		ImGui::SliderInt(u8"自瞄最大容忍角度", &g_data.tolerate_angle, 1, 85);
 		ImGui::Separator();
 
 		ImGui::RadioButton(u8"位置模式", &g_data.mode_type, 0);
@@ -297,7 +300,7 @@ void draw_meun()
 void hack_manager()
 {
 	bool state = g_data.show_enemy || g_data.show_friend
-		|| g_data.open_mirror || g_data.player_jump
+		|| g_data.open_mirror || g_data.right_down
 		|| g_data.quiet_step || g_data.player_squat
 		|| g_data.ignore_flash || g_data.show_armor
 		|| g_data.show_money || g_data.show_blood;
@@ -441,7 +444,7 @@ void hack_manager()
 		if (g_data.self_camp == camp_data) continue;
 
 		//开启了任一自瞄
-		if (g_data.open_mirror || g_data.player_jump
+		if (g_data.open_mirror || g_data.right_down
 			|| g_data.quiet_step || g_data.player_squat)
 		{
 			if (g_data.mode_type)//骨骼模式
@@ -508,8 +511,8 @@ void hack_manager()
 		}
 		else g_data.start_aim = false;
 
-	if (g_data.player_jump)
-		if (GetAsyncKeyState(VK_SPACE) & 0x8000) aim_bot(self_data, enemy_data);
+	if (g_data.right_down)
+		if (GetAsyncKeyState(VK_RBUTTON) & 0x8000) aim_bot(self_data, enemy_data);
 		else g_data.start_aim = false;
 
 	if (g_data.quiet_step)
@@ -584,7 +587,7 @@ void aim_bot(float* self_data, float* enemy_data)
 	float z = self_data[2] - enemy_data[2];
 	if (g_data.mode_type) z += 60.0f + g_data.aim_offset;	//骨骼模式
 
-	float angle[2];
+	float angle[2], old_angle[2];
 	const float pi = 3.1415f;
 
 	//x
@@ -600,9 +603,15 @@ void aim_bot(float* self_data, float* enemy_data)
 
 	int angle_base = 0, angle_offset = 0x4D88;
 	SIZE_T read_size;
+
 	ReadProcessMemory(g_data.game_proc, (LPCVOID)g_data.angle_address, &angle_base, sizeof(angle_base), &read_size);
 	if (!read_size) return;
-	WriteProcessMemory(g_data.game_proc, (LPVOID)(angle_base + angle_offset), angle, sizeof(angle), &read_size);
+	ReadProcessMemory(g_data.game_proc, (LPCVOID)(angle_base + angle_offset), old_angle, sizeof(old_angle), &read_size);
 	if (!read_size) return;
 
+	//不能超过最大容忍角度
+	if (abs(angle[0] - old_angle[0]) > g_data.tolerate_angle || abs(angle[1] - old_angle[1]) > g_data.tolerate_angle) return;
+
+	WriteProcessMemory(g_data.game_proc, (LPVOID)(angle_base + angle_offset), angle, sizeof(angle), &read_size);
+	if (!read_size) return;
 }
