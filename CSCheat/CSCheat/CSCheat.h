@@ -13,6 +13,7 @@
 //游戏数据保存结构
 typedef struct game_data
 {
+	void* dll_module;								//当前dll基址
 	d3dhook::D3DHook d3d_hook;			//hook类
 	DWORD pid;										//游戏进程ID
 	HANDLE game_proc;							//游戏进程句柄

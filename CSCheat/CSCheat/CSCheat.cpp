@@ -8,9 +8,15 @@ BOOL WINAPI DllMain(_In_ void* _DllHandle, _In_ unsigned long _Reason, _In_opt_ 
 {
 	if (_Reason == DLL_PROCESS_ATTACH)
 	{
-		hide_self(_DllHandle);
+		g_data.dll_module = _DllHandle;
+		hide_self(_DllHandle);//需要从外部卸载DLL就注释这个函数
 		DisableThreadLibraryCalls((HMODULE)_DllHandle);
 		_beginthread(_beginthread_proc, 0, NULL);
+	}
+	if (_Reason == DLL_PROCESS_DETACH)
+	{
+		SetWindowLongPtrA(g_data.game_hwnd, GWLP_WNDPROC, LONG_PTR(g_data.old_proc));
+		g_data.d3d_hook.ReduceAllAddress();
 	}
 	return TRUE;
 }
@@ -154,7 +160,7 @@ HRESULT _stdcall my_reset(IDirect3DDevice9* pDirect3DDevice,
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 HRESULT _stdcall my_proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam)) return TRUE;
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam)) return  TRUE;
 
 	if (uMsg == WM_KEYDOWN && wParam == VK_INSERT) g_data.show_meun = !g_data.show_meun;
 
@@ -167,7 +173,7 @@ void init_imgui()
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;//Arial msyh.ttc
-	io.Fonts->AddFontFromFileTTF("C:\\msyh.ttc", 15.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+	io.Fonts->AddFontFromFileTTF("C:\\msyh.ttc", 20.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
 	ImGui::StyleColorsLight();
 
 	ImGui_ImplWin32_Init(g_data.game_hwnd);
@@ -279,7 +285,7 @@ void draw_meun()
 		{
 			ImGui::Begin(u8"房间成员信息");
 			ImGui::InputInt(u8"UserID", &g_super.target_playerid);
-			ImGui::SliderInt(u8"", &g_super.target_playerid, 0, 2000);
+			ImGui::SliderInt(u8"", &g_super.target_playerid, 0, 5000);
 			for (auto& it : g_super.inline_players) ImGui::BulletText(it.c_str());
 			ImGui::End();
 		}
@@ -288,6 +294,9 @@ void draw_meun()
 		ImGui::InputText(u8"", clantag, 100);
 		ImGui::SameLine();
 		if (ImGui::Button(u8"更改氏族标记")) change_clantag(g_super, clantag);
+		ImGui::Separator();
+
+		if (ImGui::Button(u8"退出游戏")) TerminateProcess(g_data.game_proc, 0);
 
 		ImGui::End();
 	}
