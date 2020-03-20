@@ -172,9 +172,17 @@ void init_imgui()
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;//Arial msyh.ttc
-	io.Fonts->AddFontFromFileTTF("C:\\msyh.ttc", 20.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	ImGui::StyleColorsLight();
+	const char* font_path = "c:\\msyh.ttc";
+	if(std::filesystem::exists(font_path))
+		io.Fonts->AddFontFromFileTTF(font_path, 20.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+	else
+	{
+		char buffer[1024];
+		sprintf(buffer, "需要将msyh.ttc字体文件放到C盘根目录下才能正常中文的显示");
+		MessageBoxA(NULL, buffer, "字体问题", NULL);
+	}
 
 	ImGui_ImplWin32_Init(g_data.game_hwnd);
 	ImGui_ImplDX9_Init(g_data.d3d_hook.GetGameDirect3DDevice());
@@ -214,6 +222,7 @@ void draw_meun()
 	{
 		ImGui::Begin(u8"CSGO游戏辅助", &g_data.show_meun);
 		ImGui::Text(u8"[Ins]		显示/关闭");
+		ImGui::Text(u8"提示:如果发现墙体纹理抖动情况，清隐藏当前辅助菜单即可解决!!!");
 		ImGui::Separator();
 
 		ImGui::Checkbox(u8"敌人方框", &g_data.show_enemy);
@@ -358,6 +367,10 @@ void hack_manager()
 		ReadProcessMemory(g_data.game_proc, (LPCVOID)(player_base + blood_offset), &blood_data,sizeof(blood_data),&read_size);
 		if (!read_size) return;
 		if (!blood_data) continue;
+
+		//写入人物位置，防止方框遗留问题
+		WriteProcessMemory(g_data.game_proc, (LPVOID)(player_base + pos_offset), pos_data, sizeof(pos_data), &read_size);
+		if (!read_size) return;
 
 		//读取人物位置
 		ReadProcessMemory(g_data.game_proc, (LPCVOID)(player_base + pos_offset), pos_data, sizeof(pos_data), &read_size);

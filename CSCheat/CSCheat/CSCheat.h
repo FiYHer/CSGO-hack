@@ -9,6 +9,7 @@
 
 #include "D3DHook.h"
 #include "SuperHack.h"
+#include <filesystem>
 
 //游戏数据保存结构
 typedef struct game_data
