@@ -57,6 +57,7 @@ typedef struct game_data
 	{
 		show_meun = true;
 		aim_offset = 1.5f;
+		mode_type = 1;
 		mirror_ms = 25;
 		tolerate_angle = 45;
 	}
@@ -119,5 +120,7 @@ void draw_meney(int x, int y, int w, int meney);
 //开始自瞄
 void aim_bot(float* self_data, float* enemy_data);
 
+//清空人物方框遗留
+void clear_boxs();
 
 

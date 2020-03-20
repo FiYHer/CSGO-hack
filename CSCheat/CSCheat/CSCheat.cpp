@@ -214,15 +214,16 @@ void init_gamedatas()
 
 void draw_meun()
 {
-	ImGui_ImplDX9_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-
 	if (g_data.show_meun)
 	{
+		ImGui_ImplDX9_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
+
 		ImGui::Begin(u8"CSGO游戏辅助", &g_data.show_meun);
 		ImGui::Text(u8"[Ins]		显示/关闭");
-		ImGui::Text(u8"提示:如果发现墙体纹理抖动情况，清隐藏当前辅助菜单即可解决!!!");
+		ImGui::Text(u8"提示:如果发现墙体纹理抖动情况，请隐藏当前辅助菜单即可解决!!!");
 		ImGui::Separator();
 
 		ImGui::Checkbox(u8"敌人方框", &g_data.show_enemy);
@@ -305,14 +306,16 @@ void draw_meun()
 		if (ImGui::Button(u8"更改氏族标记")) change_clantag(g_super, clantag);
 		ImGui::Separator();
 
-		if (ImGui::Button(u8"退出游戏")) TerminateProcess(g_data.game_proc, 0);
+		if (ImGui::Button(u8"建议单击此处退出游戏")) TerminateProcess(g_data.game_proc, 0);
+		ImGui::SameLine();
+		if (ImGui::Button(u8"清除人物方框遗留")) clear_boxs();
 
 		ImGui::End();
-	}
 
-	ImGui::EndFrame();
-	ImGui::Render();
-	ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+		ImGui::EndFrame();
+		ImGui::Render();
+		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+	}
 }
 
 void hack_manager()
@@ -347,7 +350,7 @@ void hack_manager()
 
 	int player_base = 0, next_offset = 0x10;
 	int blood_data = 0, blood_offset = 0x100;
-	float pos_data[3]; int pos_offset = 0xA0;
+	float pos_data[3]{ 0,0,0 }; int pos_offset = 0xA0;
 	int camp_data = 0, camp_offset = 0xF4;
 	float flash_data = 2.0f; int flash_offset = 0xA40C;
 	int armor_data = 0, armor_offset = 0xB368;
@@ -367,10 +370,6 @@ void hack_manager()
 		ReadProcessMemory(g_data.game_proc, (LPCVOID)(player_base + blood_offset), &blood_data,sizeof(blood_data),&read_size);
 		if (!read_size) return;
 		if (!blood_data) continue;
-
-		//写入人物位置，防止方框遗留问题
-		WriteProcessMemory(g_data.game_proc, (LPVOID)(player_base + pos_offset), pos_data, sizeof(pos_data), &read_size);
-		if (!read_size) return;
 
 		//读取人物位置
 		ReadProcessMemory(g_data.game_proc, (LPCVOID)(player_base + pos_offset), pos_data, sizeof(pos_data), &read_size);
@@ -636,4 +635,22 @@ void aim_bot(float* self_data, float* enemy_data)
 
 	WriteProcessMemory(g_data.game_proc, (LPVOID)(angle_base + angle_offset), angle, sizeof(angle), &read_size);
 	if (!read_size) return;
+}
+
+void clear_boxs()
+{
+	const int next_offset = 0x10;
+	int player_base = 0;
+	const int pos_offset = 0xa0;
+	float pos_data[3] = { 300.0f,300.0f,600.0f };
+	SIZE_T read_size;
+	for (int i = 0; i <= 50; i++)
+	{
+		//读取人物基址
+		ReadProcessMemory(g_data.game_proc, (LPCVOID)(g_data.enemy_address + i * next_offset), &player_base, sizeof(player_base), &read_size);
+		if (!read_size) return;
+
+		//写入人物位置
+		WriteProcessMemory(g_data.game_proc, (LPVOID)(player_base + pos_offset), pos_data, sizeof(pos_data), &read_size);
+	}
 }

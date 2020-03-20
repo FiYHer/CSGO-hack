@@ -401,7 +401,7 @@ typedef struct super_data
 	//Õë¶ÔÍæ¼ÒID
 	int target_playerid;
 
-	super_data() :report_grief(true), report_time(5)
+	super_data() :report_wallhack(true), report_aim(true), report_time(5)
 	{
 		engine = find<Engine>(L"engine", "VEngineClient014");
 		client = find<Client>(L"client_panorama", "VClient018");
