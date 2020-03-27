@@ -11,6 +11,7 @@ client_panorama.dll + 4D2E0A4
 client_panorama.dll + 4D35208
 client_panorama.dll + 4D36344
 client_panorama.dll + 4D36454
+client_panorama.dll + 4D36334
 
 自己角度	4D88	X[180du]
 engine.dll+590D8C
@@ -30,6 +31,7 @@ client_panorama.dll+D30B84
 client_panorama.dll+4D438DC
 client_panorama.dll+4D45DC4
 client_panorama.dll+4D44A04
+client_panorama.dll+4D449F4
 
 闪光透明度		A3F0	float
 骨骼偏移		一级26a8 二级0	X:99 Y:103 Z:107

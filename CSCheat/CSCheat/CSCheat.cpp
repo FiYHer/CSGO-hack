@@ -201,9 +201,9 @@ void init_gamedatas()
 	cout << "engine address -> " << engine << endl;
 #endif
 
-	const int matrix_offset = 0x4D36454;
+	const int matrix_offset = 0x4D36334;
 	const int self_offset = 0xD30B84;
-	const int enemy_offset = 0x4D44A04;
+	const int enemy_offset = 0x4D449F4;
 	const int angle_offset = 0x589D9C;
 
 	g_data.matrix_address = (int)client_panorama + matrix_offset;
@@ -223,6 +223,7 @@ void draw_meun()
 
 		ImGui::Begin(u8"CSGO游戏辅助", &g_data.show_meun);
 		ImGui::Text(u8"[Ins]		显示/关闭");
+		ImGui::Text(u8"更新时间 : 2020 / 3 / 27");
 		ImGui::Text(u8"提示:如果发现墙体纹理抖动情况，请隐藏当前辅助菜单即可解决!!!");
 		ImGui::Separator();
 
