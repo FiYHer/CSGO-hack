@@ -194,17 +194,14 @@ void init_gamedatas()
 	HMODULE client_panorama = GetModuleHandleA("client_panorama");
 	HMODULE engine = GetModuleHandleA("engine");
 
-#ifdef _DEBUG
-	printf("Buffer");
 	cout << "game process -> " << g_data.game_proc << endl;
 	cout << "client_panorama address -> " << client_panorama << endl;
 	cout << "engine address -> " << engine << endl;
-#endif
 
-	const int matrix_offset = 0x4D36334;
-	const int self_offset = 0xD30B84;
-	const int enemy_offset = 0x4D449F4;
-	const int angle_offset = 0x589D9C;
+	const int matrix_offset = 0x4D35504;
+	const int self_offset = 0xD2FB84;
+	const int enemy_offset = 0x4D43AB4;
+	const int angle_offset = 0x589DCC;
 
 	g_data.matrix_address = (int)client_panorama + matrix_offset;
 	g_data.self_address = (int)client_panorama + self_offset;

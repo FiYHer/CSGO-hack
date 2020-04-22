@@ -7,35 +7,33 @@ UMP5
 图案模板	447
 
 自己矩阵	绿色基址
-client_panorama.dll + 4D2E0A4   
-client_panorama.dll + 4D35208
-client_panorama.dll + 4D36344
 client_panorama.dll + 4D36454
 client_panorama.dll + 4D36334
+client_panorama.dll + 4D35504
 
 自己角度	4D88	X[180du]
 engine.dll+590D8C
 engine.dll+588DA4
-engine.dll+588D9C
-engine.dll+589D9C
+engine.dll+589DCC
 
 自己位置	0x3450  0x35A8[X] 0x3454
-client_panorama.dll+D27AAC
-client_panorama.dll+D28AAC
-client_panorama.dll+D28B1C
 client_panorama.dll+D2FB74
 client_panorama.dll+D30B84
+client_panorama.dll+D2FB84
 
 敌人位置	A8 OR 140 OR B4
+特征码 : 5C EB 4F 78
 下一个 10
-client_panorama.dll+4D438DC
-client_panorama.dll+4D45DC4
 client_panorama.dll+4D44A04
 client_panorama.dll+4D449F4
+client_panorama.dll+4D63AE4
+client_panorama.dll+4D44E64
+client_panorama.dll+4D43AB4
 
 闪光透明度		A3F0	float
 骨骼偏移		一级26a8 二级0	X:99 Y:103 Z:107
 阵营标识		F4
+血量			100
 防护甲数值		B368
 观察者模式		3378	4[ture]	5 6 0[false]
 当前武器		2EF8
