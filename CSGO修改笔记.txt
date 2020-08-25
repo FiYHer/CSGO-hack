@@ -7,28 +7,42 @@ UMP5
 图案模板	447
 
 自己矩阵	绿色基址
-client_panorama.dll + 4D36454
-client_panorama.dll + 4D36334
-client_panorama.dll + 4D35504
+client_panorama.dll + 4D35514
+client_panorama.dll + 4D35414[第一个]
 
-自己角度	4D88	X[180du]
+
+Engine.dll 自己角度	4D88	X[180du]
 engine.dll+590D8C
-engine.dll+588DA4
+engine.dll+589DCC
 engine.dll+589DCC
 
+
+最多玩家数量	388
+自己角度		4D88
+
+
 自己位置	0x3450  0x35A8[X] 0x3454
-client_panorama.dll+D2FB74
-client_panorama.dll+D30B84
 client_panorama.dll+D2FB84
+client_panorama.dll+D2FB94
 
 敌人位置	A8 OR 140 OR B4
 特征码 : 5C EB 4F 78
 下一个 10
-client_panorama.dll+4D44A04
-client_panorama.dll+4D449F4
-client_panorama.dll+4D63AE4
 client_panorama.dll+4D44E64
 client_panorama.dll+4D43AB4
+client_panorama.dll+4D43AD4
+client_panorama.dll+4D43AC4
+
+覆盖到1是OK
+覆盖到2是不OK
+client_panorama.dll+D2FB94
+client_panorama.dll+4D43AC0
+client_panorama.dll+4D43ECC
+client_panorama.dll+5194FE4
+client_panorama.dll+51EBEE8
+client_panorama.dll+4D43AC4
+
+B8 D8 1C 00 00 E8 D0 8F 86 00
 
 闪光透明度		A3F0	float
 骨骼偏移		一级26a8 二级0	X:99 Y:103 Z:107
@@ -39,8 +53,119 @@ client_panorama.dll+4D43AB4
 当前武器		2EF8
 闪光度			A40C
 有头盔			B35C
-开镜			3914
+开镜状态		3914
 金钱			B354 B358
+后座力			0x302C	按住最大是-5 加上10左右
+免疫状态		3930	购买武器的时候是1
+开枪状态		A380	不开枪就是0
+下蹲状态		110		浮点类型	下蹲是小于50.0f
+跳跃状态		11C		浮点类型	跳跃是不为0
+人物角度		3B8
+左右角度		130
+下蹲状态		104	int不蹲下257 263
+下蹲状态		33c float不蹲下72 蹲下54
+下蹲状态		344 float不蹲下42... 蹲下35
+下蹲状态		378 float不蹲下72... 蹲下54
+
+开镜判断 m_iFOVStart int   不开镜=90 一次镜=40 二次镜=15
+子弹数量 m_iClip1
+defaultFOV 0x332c  120
+
+A96 A97 A98
+
+C_BaseAnimating::SetupBones
+Call relationship : 
+client_panorama.dll+240E42
+client_panorama.dll+240DA0
+client_panorama.dll+2409A0 hook
+client_panorama.dll+34FF70 hook
+client_panorama.dll+3504E0 hook
+client_panorama.dll+39C9C0 hook
+client_panorama.dll+19A720 hook
+client_panorama.dll+3A5DA0 hook
+client_panorama.dll+19AC53 
+client_panorama.dll+1EE260 hook
+client_panorama.dll+198091
+client_panorama.dll+1CBCA0 hook
+client_panorama.dll+1CFA40 hook
+client_panorama.dll+1CF970 hook
+client_panorama.dll+3A32E0 hook
+client_panorama.dll+1B6D40 hook
+client_panorama.dll+1B4D10 
+client_panorama.dll+3A3640 hook
+client_panorama.dll+1B7FE0 hook
+
+shaderapidx9.dll + A70E4
+
+\xCC\xCC\xCC\x55\x8B\xEC\x83\xE4\xF0\xB8\xD8\x1C\x00\x00\xE8\x30\x86\x86\x00
+CC CC CC 55 8B EC 83 E4 F0 B8 D8 1C 00 00 E8 30 86 86 00
+341D7FE0    55              push ebp                                 ; 初始化
+341D7FE1    8BEC            mov ebp,esp
+341D7FE3    83E4 F0         and esp,-0x10
+341D7FE6    B8 D81C0000     mov eax,0x1CD8
+341D7FEB    E8 30868600     call client_p.34A40620
+341D7FF0    56              push esi
+341D7FF1    57              push edi
+341D7FF2    8BF9            mov edi,ecx
+341D7FF4    8B0D 2CF3AA34   mov ecx,dword ptr ds:[<&tier0.g_VProfCur>; tier0.g_VProfCurrentProfile
+341D7FFA    897C24 28       mov dword ptr ss:[esp+0x28],edi
+341D7FFE    8B81 0C100000   mov eax,dword ptr ds:[ecx+0x100C]
+341D8004    894424 50       mov dword ptr ss:[esp+0x50],eax
+341D8008    85C0            test eax,eax
+341D800A    74 26           je short client_p.341D8032
+341D800C    803D CFB92039 0>cmp byte ptr ds:[0x3920B9CF],0x0
+
+
+client_panorama.dll+1B7FE0 - 55                    - push ebp
+client_panorama.dll+1B7FE1 - 8B EC                 - mov ebp,esp
+client_panorama.dll+1B7FE3 - 83 E4 F0              - and esp,-10 { 240 }
+client_panorama.dll+1B7FE6 - B8 D81C0000           - mov eax,00001CD8 { 7384 }
+client_panorama.dll+1B7FEB - E8 30868600           - call client_panorama.dll+A20620
+client_panorama.dll+1B7FF0 - 56                    - push esi
+client_panorama.dll+1B7FF1 - 57                    - push edi
+client_panorama.dll+1B7FF2 - 8B F9                 - mov edi,ecx
+client_panorama.dll+1B7FF4 - 8B 0D 2CF3CE35        - mov ecx,[client_panorama.dll+A8F32C] { (7AC62600) }
+client_panorama.dll+1B7FFA - 89 7C 24 28           - mov [esp+28],edi
+client_panorama.dll+1B7FFE - 8B 81 0C100000        - mov eax,[ecx+0000100C]
+client_panorama.dll+1B8004 - 89 44 24 50           - mov [esp+50],eax
+client_panorama.dll+1B8008 - 85 C0                 - test eax,eax
+client_panorama.dll+1B800A - 74 26                 - je client_panorama.dll+1B8032
+client_panorama.dll+1B800C - 80 3D CFB9443A 00     - cmp byte ptr [client_panorama.dll+51EB9CF],00 { (0),0 }
+client_panorama.dll+1B8013 - BA 1879D435           - mov edx,client_panorama.dll+AE7918 { ("Client_Animation_Threaded") }
+client_panorama.dll+1B8018 - 6A 04                 - push 04 { 4 }
+client_panorama.dll+1B801A - 6A 00                 - push 00 { 0 }
+client_panorama.dll+1B801C - B8 D078D435           - mov eax,client_panorama.dll+AE78D0 { ("Client_Animation") }
+
+
+
+
+
+180
+
+
+3CA2E7E0	"client_panorama", "VClient018"
+7BC7C270	"vstdlib", "VEngineCvar007"
+15698170	"engine", "VEngineClient014"
+156A456C	"engine", "EngineTraceClient004"
+3CA53AB4	"client_panorama", "VClientEntityList003"
+158F1D50	"engine", "GAMEEVENTSMANAGER002"
+3CE84180	"client_panorama", "GameMovement001"
+3CE86568	"client_panorama", "GameUI011"
+7A651188	"inputsystem", "InputSystemVersion001"
+1B7B8A70	"localize", "Localize_001"
+7A880420	"materialsystem", "VMaterialSystem080"
+156AAB18	"engine", "VModelInfoClient004"
+1587C6D0	"engine", "VEngineModel016"
+7B1308C4	"vgui2", "VGUI_Panel009"
+7A776018	"vphysics", "VPhysicsSurfaceProps001"
+3CE854B8	"client_panorama", "VClientPrediction001"
+1569F170	"engine", "VEngineRenderView014"
+7A931810	"datacache", "VResourceAccessControl001"
+7B0747C0	"vguimatsurface", "VGUI_Surface031"
+156264C4	"engine", "IEngineSoundClient003"
+7ADDAC70	"soundemittersystem", "VSoundEmitter003"
+7AD5DCB8	"studiorender", "VStudioRender026"
+	
 
 
 骨骼偏移 0x26a8
@@ -196,3 +321,178 @@ G3SG1		19005738
 
 
 
+【CSGO偏移】
+https://github.com/frk1/hazedumper/blob/master/csgo.hpp
+
+UMP5
+皮肤风格	水转印
+皮肤编号	17
+图案模板	447
+
+自己矩阵	绿色基址
+client_panorama.dll + 4D36454
+client_panorama.dll + 4D36334
+client_panorama.dll + 4D35504
+
+自己角度	4D88	X[180du]
+engine.dll+590D8C
+engine.dll+588DA4
+engine.dll+589DCC
+engine.dll+58ADD4
+
+自己位置	0x3450  0x35A8[X] 0x3454
+client_panorama.dll+D2FB74
+client_panorama.dll+D30B84
+client_panorama.dll+D2FB84
+
+敌人位置	A8 OR 140 OR B4
+特征码 : 5C EB 4F 78
+下一个 10
+client_panorama.dll+4D44A04
+client_panorama.dll+4D449F4
+client_panorama.dll+4D63AE4
+client_panorama.dll+4D44E64
+client_panorama.dll+4D43AB4
+
+闪光透明度		A3F0	float
+骨骼偏移		一级26a8 二级0	X:99 Y:103 Z:107
+阵营标识		F4
+血量			100
+防护甲数值		B368
+观察者模式		3378	4[ture]	5 6 0[false]
+当前武器		2EF8
+闪光度			A40C
+有头盔			B35C
+开镜			3914
+金钱			B354 B358
+
+
+骨骼偏移 0x26a8
+client_panorama.dll+4D09F04	 二级偏移是0
+client_panorama.dll+4D09F14
+-----------------------------------------q
+client_panorama.dll+4D09F14
+区别0x770敌人标志一样
+区别0x945敌人标识都是2【byte】
+区别0xa60敌人都是0
+
+骨骼偏移 【168*8】【26a8】
+client_panorama.dll+4D0B334
+
+骨骼偏移 0x2910
+client_panorama.dll+4D09F14
+
+Stride解析
+32	地图 人物	main
+48	地图配件
+80	地图外表
+
+全部潜伏者：
+200,
+252,
+290,
+622,646,692
+903,924,927,
+1003,1006,1053,
+1106,1197,1183,
+1214,1215,1273,
+1314,1345,1380,1395,
+1462,
+1525,
+1671,1624,
+1914,1925,1996,
+2056,
+2112,
+2369,
+2447,
+2536,
+2663,
+3164,
+3225,
+3368,
+3692,
+3742,
+3836,
+3932,
+4159,
+4410,
+5572,
+7236,
+
+全部保卫者:
+64,
+116,
+136,
+140,
+256,
+934,991,
+1222,1258,
+1310,1374,1383,
+1410,1432,1439,
+1601,1611,1645,
+1702,1735,
+1967,
+2052,
+2112,2151,2157,
+2254,2266,
+2482,2489,
+2539,
+2856,
+2924,2963,
+3093,
+3152,3137,
+3245,
+3630,
+4084,
+4320,
+4422,
+4510,4533,
+4666
+5299,
+7163,
+
+瞄准标志
+B3F8
+B3E4
+
+
+
+手枪
+P2000		33947988
+双持贝瑞塔	18219306
+P250		59965742
+FN57		16384301
+沙漠之鹰	57868593
+宙斯		56885558
+格洛克18	18743604
+TEC-9		16974125
+
+重型武器
+新星		53936435
+XM1014		56754486
+MAG-7		36569401
+M249		27656501
+内格夫		66060606
+截短散弹枪	63308079
+
+微型冲锋枪
+MP9			27459901
+MP7			30540097
+UMP45		18284842
+P90			16515373
+PP野牛		57934129
+MAC-10		58655025
+
+步枪
+M4A4		18415920
+SSG08		9765164
+AUG			60227886
+AWP			18612532
+SCAR-20		18481450
+法玛斯		63111471
+AK47		57737528
+SG553		51773751
+加利尔AR	20775209
+G3SG1		19005738
+
+20906281
