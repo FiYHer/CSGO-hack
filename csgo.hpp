@@ -6,6 +6,10 @@
 namespace blazedumper {
 	constexpr ::std::int64_t timestamp = 15985797950594159
 		namespace netvars {
+		
+		constexpr ::std::ptrdiff_t m_fFirstHook = 0xB0370;
+		constexpr ::std::ptrdiff_t m_fSecondHook = 0xB03B0;
+			
 		constexpr ::std::ptrdiff_t cs_gamerules_data = 0x0;
 		constexpr ::std::ptrdiff_t m_ArmorValue = 0xB378;
 		constexpr ::std::ptrdiff_t m_Collision = 0x320;
