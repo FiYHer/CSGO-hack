@@ -7,7 +7,7 @@ namespace blazedumper {
 	constexpr ::std::int64_t timestamp = 15985797950594159
 		namespace netvars {
 		
-		constexpr ::std::string m_szShowMessage = Time - >2020.8.30 !!?;
+		constexpr ::std::string m_szShowMessage = [Time:2020.8.30!!];
 		constexpr ::std::ptrdiff_t m_fFirstHook = 0xB0370;
 		constexpr ::std::ptrdiff_t m_fSecondHook = 0xB03B0;
 			
