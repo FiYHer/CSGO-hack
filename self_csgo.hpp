@@ -9,6 +9,7 @@ constexpr ::std::ptrdiff_t m_fSecondHook = 0xB0420;
 
 	
 //signatures
+constexpr ptrdiff_t fakePrime = 0x5AEF9F;
 constexpr ptrdiff_t fakeLevel = 0x51A095C;
 constexpr ptrdiff_t fakeRank = 0xD59290;
 constexpr ptrdiff_t dwClientState = 0x589DD4;
