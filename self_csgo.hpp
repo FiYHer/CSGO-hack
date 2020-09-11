@@ -3,12 +3,14 @@
 //GuidedHacking.com r0x0rs ur b0x0rs
 namespace offsets
 {
-
-constexpr ::std::string m_szShowMessage = [2020.9.9];
+constexpr ::std::string m_szShowMessage = [2020.9.11];
 constexpr ::std::ptrdiff_t m_fFirstHook = 0xB03E0;
 constexpr ::std::ptrdiff_t m_fSecondHook = 0xB0420;
 
+	
 //signatures
+constexpr ptrdiff_t fakeLevel = 0x51A095C;
+constexpr ptrdiff_t fakeRank = 0xD59290;
 constexpr ptrdiff_t dwClientState = 0x589DD4;
 constexpr ptrdiff_t dwClientState_GetLocalPlayer = 0x180;
 constexpr ptrdiff_t dwClientState_IsHLTV = 0x4D40;
@@ -48,7 +50,7 @@ constexpr ptrdiff_t dwSetClanTag = 0x89E50;
 constexpr ptrdiff_t dwViewMatrix = 0x4D40B44;
 constexpr ptrdiff_t dwWeaponTable = 0x51A1298;
 constexpr ptrdiff_t dwWeaponTableIndex = 0x325C;
-constexpr ptrdiff_t dwYawPtr = 0xCAFB0002;
+constexpr ptrdiff_t dwYawPtr = 0xCC140002;
 constexpr ptrdiff_t dwZoomSensitivityRatioPtr = 0xD45700;
 constexpr ptrdiff_t dwbSendPackets = 0xD420A;
 constexpr ptrdiff_t dwppDirect3DDevice9 = 0xA7030;
@@ -65,7 +67,7 @@ constexpr ptrdiff_t is_c4_owner = 0x3ACDF0;
 constexpr ptrdiff_t force_update_spectator_glow = 0x3A0362;
 constexpr ptrdiff_t anim_overlays = 0x2980;
 constexpr ptrdiff_t m_flSpawnTime = 0xA370;
-constexpr ptrdiff_t find_hud_element = 0x35301330;
+constexpr ptrdiff_t find_hud_element = 0x34171330;
 
 //netvars
 constexpr ptrdiff_t m_ArmorValue = 0xB378;
