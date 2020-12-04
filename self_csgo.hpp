@@ -7,8 +7,8 @@ constexpr ::std::string m_szShowMessage = [2020.12.04];
 constexpr ::std::ptrdiff_t m_fFirstHook = 0xB1780;
 constexpr ::std::ptrdiff_t m_fSecondHook = 0xB17C0;
 	
-constexpr ::std::ptrdiff_t TimeDateStamp = 5F85DFEE;
-constexpr ::std::ptrdiff_t CheckSum = 001AAFF2;
+constexpr ::std::ptrdiff_t TimeDateStamp = 0x5F85DFEE;
+constexpr ::std::ptrdiff_t CheckSum = 0x001AAFF2;
 	
 //signatures
 constexpr ptrdiff_t fakeLevel = 0x51F01BC;
