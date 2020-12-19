@@ -5,7 +5,7 @@
 
 namespace hazedumper {
 namespace netvars {
-constexpr ::std::ptrdiff_t m_szUpdate = 2020 - 12 - 19;
+constexpr ::std::ptrdiff_t m_szUpdate = 2020.12.19;
 constexpr ::std::ptrdiff_t m_fFirstHook = 0xB1930;
 constexpr ::std::ptrdiff_t m_fSecondHook = 0xB1970;
 constexpr ::std::ptrdiff_t cs_gamerules_data = 0x0;
